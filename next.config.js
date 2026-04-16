@@ -5,7 +5,7 @@ const nextConfig = {
   },
   images: { unoptimized: true },
   experimental: {
-    serverComponentsExternalPackages: ['docx'],
+    serverComponentsExternalPackages: ['docx', 'pdf-parse'],
   },
   async headers() {
     // Prevent CDN caching for auth-gated pages so stale HTML is never served

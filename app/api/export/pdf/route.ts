@@ -8,6 +8,19 @@ import {
 
 export const runtime = 'nodejs';
 
+// pdf-lib StandardFonts use WinAnsiEncoding — characters outside it throw at drawText.
+// Replace the most common offenders from AI-generated text with ASCII equivalents.
+function sanitizeForPdf(text: string): string {
+  return text
+    .replace(/[\u2018\u2019]/g, "'")   // smart single quotes → '
+    .replace(/[\u201C\u201D]/g, '"')   // smart double quotes → "
+    .replace(/\u2022/g, '-')           // bullet • → -
+    .replace(/\u2013/g, '-')           // en dash – → -
+    .replace(/\u2014/g, '--')          // em dash — → --
+    .replace(/\u2026/g, '...')         // ellipsis … → ...
+    .replace(/[^\x00-\xFF]/g, '');     // strip any remaining non-Latin1 chars
+}
+
 function wrapText(text: string, maxChars = 95): string[] {
   const lines: string[] = [];
   const paragraphs = text.split('\n');
@@ -90,7 +103,7 @@ export async function POST(request: NextRequest) {
       y -= 24;
     }
 
-    const lines = wrapText(buildResumePlainText(optimizedResume, jobStructured));
+    const lines = wrapText(sanitizeForPdf(buildResumePlainText(optimizedResume, jobStructured)));
 
     for (const line of lines) {
       if (y < margin + 20) {

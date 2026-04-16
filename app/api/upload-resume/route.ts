@@ -13,6 +13,14 @@ function cleanExtractedText(raw: string): string {
     .trim();
 }
 
+async function extractTextFromPdf(buffer: Buffer): Promise<string> {
+  // Dynamic import avoids pdf-parse loading its test fixtures at module init time,
+  // which breaks Next.js App Router builds.
+  const pdfParse = (await import('pdf-parse')).default;
+  const result = await pdfParse(buffer);
+  return result.text ?? '';
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -48,26 +56,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: recolocar parsing real do PDF depois
-    let rawText = `
-Thiago Silva
-Product Manager
-Resumo profissional:
-Profissional com experiência em gestão de produtos digitais, discovery, priorização de backlog,
-alinhamento com stakeholders, análise de métricas e definição de roadmap.
-Experiência:
-- Product Manager na Empresa X
-- Product Owner na Empresa Y
-Competências:
-- Product Discovery
-- Roadmap
-- Backlog
-- OKR
-- Stakeholder Management
-- Agile
-- Scrum
-- Métricas de produto
-`;
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    let rawText: string;
+    try {
+      rawText = await extractTextFromPdf(buffer);
+    } catch {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Não foi possível extrair texto do PDF. Tente outro arquivo ou cole o texto manualmente.',
+        },
+        { status: 400 }
+      );
+    }
 
     const cleanText = cleanExtractedText(rawText);
 
@@ -75,7 +79,8 @@ Competências:
       return NextResponse.json(
         {
           success: false,
-          error: 'Não foi possível extrair texto suficiente do PDF. Tente outro arquivo ou cole o texto manualmente.',
+          error:
+            'O PDF não contém texto suficiente para análise. Verifique se o arquivo não é uma imagem escaneada e tente colar o texto manualmente.',
         },
         { status: 400 }
       );
