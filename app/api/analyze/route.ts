@@ -1,0 +1,188 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase';
+import { parseResume } from '@/lib/services/resume-parser';
+import { parseJob } from '@/lib/services/job-parser';
+import { analyzeCompatibility, optimizeResume } from '@/lib/services/analysis';
+import { estimateSalary } from '@/lib/services/salary';
+import { generateGupyTexts } from '@/lib/services/gupy';
+import type { OptimizedResume } from '@/types';
+
+function buildFallbackOptimizedText(optimized: OptimizedResume): string {
+  return [
+    optimized.summary ? `RESUMO PROFISSIONAL\n${optimized.summary}` : '',
+    optimized.highlights?.length
+      ? `DESTAQUES\n${optimized.highlights.map((item) => `• ${item}`).join('\n')}`
+      : '',
+    optimized.experiences?.length
+      ? `EXPERIÊNCIAS\n${optimized.experiences
+          .map(
+            (exp) =>
+              `${exp.title} | ${exp.company} | ${exp.period}\n${(exp.bullets ?? [])
+                .map((bullet) => `• ${bullet}`)
+                .join('\n')}`
+          )
+          .join('\n\n')}`
+      : '',
+    optimized.skills?.length ? `HABILIDADES\n${optimized.skills.join(', ')}` : '',
+    optimized.education?.length ? `FORMAÇÃO\n${optimized.education.join('\n')}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+}
+
+function parseMoneyToNumber(val: string): number {
+  const num = parseFloat(val.replace(/[^\d,]/g, '').replace(',', '.'));
+  return Number.isNaN(num) ? 0 : num;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { resumeText, jobText, jobUrl, userId } = body;
+
+    if (!userId || typeof userId !== 'string' || userId.length < 10) {
+      return NextResponse.json({ error: 'Usuário inválido.' }, { status: 400 });
+    }
+
+    if (!resumeText || typeof resumeText !== 'string' || resumeText.trim().length < 100) {
+      return NextResponse.json(
+        { error: 'O currículo precisa ter pelo menos 100 caracteres válidos.' },
+        { status: 400 }
+      );
+    }
+
+    if (!jobText || typeof jobText !== 'string' || jobText.trim().length < 50) {
+      return NextResponse.json(
+        { error: 'A descrição da vaga precisa ter pelo menos 50 caracteres válidos.' },
+        { status: 400 }
+      );
+    }
+
+    if (resumeText.length > 15000 || jobText.length > 10000) {
+      return NextResponse.json(
+        { error: 'O texto enviado excede o limite permitido para análise.' },
+        { status: 400 }
+      );
+    }
+
+    const [resumeStructured, jobStructured] = await Promise.all([
+      parseResume(resumeText.trim()),
+      parseJob(jobText.trim()),
+    ]);
+
+    const [analysis, salary] = await Promise.all([
+      analyzeCompatibility(resumeStructured, jobStructured),
+      estimateSalary(jobStructured),
+    ]);
+
+    const [optimized, gupySuggestions] = await Promise.all([
+      optimizeResume(resumeStructured, jobStructured, analysis, resumeText.trim()),
+      jobStructured.isGupy
+        ? generateGupyTexts(resumeStructured, jobStructured)
+        : Promise.resolve(null),
+    ]);
+
+    const optimizedText =
+      optimized.fullText?.trim() || buildFallbackOptimizedText(optimized);
+
+    const normalizedOptimized: OptimizedResume = {
+      summary: optimized.summary || '',
+      experiences: Array.isArray(optimized.experiences) ? optimized.experiences : [],
+      skills: Array.isArray(optimized.skills) ? optimized.skills : [],
+      education: Array.isArray(optimized.education) ? optimized.education : [],
+      highlights: Array.isArray(optimized.highlights) ? optimized.highlights : [],
+      fullText: optimizedText,
+    };
+
+    const db = createServerClient();
+
+    const { data: resumeRecord, error: resumeInsertError } = await db
+      .from('resumes')
+      .insert({
+        user_id: userId,
+        file_name: 'uploaded_resume.txt',
+        file_path: '',
+        raw_text: resumeText.trim(),
+        structured_json: resumeStructured,
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (resumeInsertError) {
+      throw new Error(resumeInsertError.message);
+    }
+
+    const { data: analysisRecord, error: analysisInsertError } = await db
+      .from('job_analyses')
+      .insert({
+        user_id: userId,
+        resume_id: resumeRecord?.id ?? null,
+        job_source_type: jobUrl ? 'url' : 'text',
+        job_url: jobUrl ?? '',
+        job_raw_text: jobText.trim(),
+        job_structured_json: jobStructured,
+        match_score: analysis.score,
+        strengths_json: analysis.strengths,
+        gaps_json: analysis.gaps,
+        missing_keywords_json: analysis.atsKeywords,
+        section_recommendations_json: analysis.sectionSuggestions,
+        optimized_resume_text: optimizedText,
+        optimized_resume_json: normalizedOptimized,
+        executive_summary: analysis.executiveSummary,
+        ats_keywords: analysis.atsKeywords,
+        is_gupy: jobStructured.isGupy,
+        status: 'completed',
+      })
+      .select('id')
+      .maybeSingle();
+
+    if (analysisInsertError) {
+      throw new Error(analysisInsertError.message);
+    }
+
+    const analysisId = analysisRecord?.id ?? null;
+
+    if (analysisId && gupySuggestions) {
+      const { error } = await db.from('gupy_suggestions').insert({
+        analysis_id: analysisId,
+        formal_text: gupySuggestions.formal ?? '',
+        human_text: gupySuggestions.human ?? '',
+        objective_text: gupySuggestions.objective ?? '',
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
+
+    if (analysisId && salary) {
+      const { error } = await db.from('salary_suggestions').insert({
+        analysis_id: analysisId,
+        salary_min: parseMoneyToNumber(salary.min),
+        salary_mid: parseMoneyToNumber(salary.mid),
+        salary_max: parseMoneyToNumber(salary.max),
+        currency: 'BRL',
+        explanation: salary.explanation,
+        source_summary: salary.factors?.join('; ') ?? '',
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
+
+    return NextResponse.json({
+      id: analysisId,
+      jobStructured,
+      analysis,
+      optimizedResume: normalizedOptimized,
+      salary,
+      gupySuggestions,
+    });
+  } catch (error) {
+    console.error('Analysis error:', error);
+    const message = error instanceof Error ? error.message : 'Analysis failed';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
