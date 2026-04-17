@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:local": "PLAYWRIGHT_BASE_URL=http://localhost:3000 playwright test",
-    "test:pipeline": "node --env-file=.env --require tsx/cjs scripts/test-pipeline.ts"
+    "test:pipeline": "node --env-file=.env --require tsx/cjs scripts/test-pipeline.ts",
+    "update:salary": "node --require tsx/cjs scripts/update-salary-benchmarks.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

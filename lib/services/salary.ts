@@ -1,4 +1,5 @@
 import { callOpenAI } from './openai';
+import { buildSalaryContext } from '@/lib/data/salary-benchmarks';
 import type { SalarySuggestion, JobStructured } from '@/types';
 
 const SYSTEM_PROMPT = `
@@ -6,12 +7,11 @@ Você estima faixa salarial para vagas no mercado brasileiro.
 
 Regras:
 - Responda em português-BR
-- Seja conservador e realista
-- Não invente precisão excessiva
-- Considere apenas os dados recebidos
-- Se faltarem dados, diga isso na explicação
-- Use valores mensais em BRL
-- Formato: "R$ 12.000"
+- Use a referência de mercado fornecida como âncora principal
+- Ajuste para cima/baixo com base em fatores específicos da vaga (stack diferenciada, fintech/startup, nível de inglês exigido, benefícios, porte da empresa)
+- Se a referência de mercado não foi encontrada, estime com base em benchmarks gerais
+- Seja conservador e realista; não invente precisão excessiva
+- Use valores mensais em BRL, formato "R$ 12.000"
 - Não use inglês
 - Não diga que consultou dados em tempo real
 - Retorne apenas JSON válido
@@ -83,10 +83,18 @@ function compactJobForSalary(job: JobStructured) {
 export async function estimateSalary(job: JobStructured): Promise<SalarySuggestion> {
   const compactJob = compactJobForSalary(job);
 
+  const benchmarkCtx = buildSalaryContext(
+    job.title || '',
+    job.seniority || '',
+    job.location || '',
+    job.workModel || ''
+  );
+
   const userPrompt = [
     'Estime a faixa salarial mensal desta vaga no mercado brasileiro.',
-    'Considere cargo, senioridade, localização, modelo de trabalho, stack e complexidade.',
-    'Se faltarem dados, diga isso na explicação.',
+    'Use a referência de mercado abaixo como âncora e ajuste com base nos detalhes da vaga.',
+    '',
+    benchmarkCtx.contextText,
     '',
     `vaga=${JSON.stringify(compactJob)}`,
   ].join('\n');
