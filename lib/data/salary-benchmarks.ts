@@ -283,6 +283,117 @@ export const SALARY_BENCHMARKS: RoleBenchmark[] = [
       senior:  { min: 8_000,  mid: 12_000, max: 16_000 },
     },
   },
+
+  // ── Área Comercial ───────────────────────────────────────────────────────────
+  // Valores de salário fixo (CLT). OTE (fixed + comissão) tipicamente 1.5–2.5x o fixo.
+
+  {
+    role: 'SDR / BDR',
+    aliases: [
+      'sdr', 'bdr', 'sales development representative',
+      'business development representative', 'pré-vendas',
+      'hunter', 'prospecção', 'prospector', 'inside sales',
+    ],
+    levels: {
+      junior:  { min: 2_000,  mid: 3_000,  max: 4_500  },
+      pleno:   { min: 4_000,  mid: 5_500,  max: 7_500  },
+      senior:  { min: 6_500,  mid: 9_000,  max: 12_000 },
+    },
+  },
+  {
+    role: 'Executivo de Vendas / Account Executive',
+    aliases: [
+      'account executive', 'executivo de vendas', 'executivo comercial',
+      'ae', 'closer', 'vendedor', 'consultor de vendas',
+      'representante de vendas', 'executivo de contas',
+    ],
+    levels: {
+      junior:  { min: 3_000,  mid: 4_500,  max: 6_500  },
+      pleno:   { min: 6_000,  mid: 9_000,  max: 13_000 },
+      senior:  { min: 11_000, mid: 16_000, max: 22_000 },
+    },
+  },
+  {
+    role: 'Customer Success',
+    aliases: [
+      'customer success', 'cs', 'csm', 'customer success manager',
+      'sucesso do cliente', 'cs specialist', 'onboarding specialist',
+      'cs analyst', 'analista de customer success',
+    ],
+    levels: {
+      junior:  { min: 2_500,  mid: 3_500,  max: 5_000  },
+      pleno:   { min: 4_500,  mid: 7_000,  max: 10_000 },
+      senior:  { min: 8_000,  mid: 12_000, max: 16_000 },
+    },
+  },
+  {
+    role: 'Account Manager / Key Account',
+    aliases: [
+      'account manager', 'am', 'key account', 'kam',
+      'key account manager', 'gerente de contas',
+      'gestor de contas', 'relacionamento comercial',
+    ],
+    levels: {
+      junior:  { min: 4_000,  mid: 6_000,  max: 8_500  },
+      pleno:   { min: 7_500,  mid: 11_000, max: 15_000 },
+      senior:  { min: 12_000, mid: 18_000, max: 25_000 },
+    },
+  },
+  {
+    role: 'Pré-vendas / Sales Engineer',
+    aliases: [
+      'sales engineer', 'pré-vendas técnico', 'pre-sales',
+      'presales', 'engenheiro de vendas', 'consultor pré-venda',
+      'solution engineer', 'solutions consultant',
+      'arquiteto de soluções comercial',
+    ],
+    levels: {
+      junior:  { min: 4_000,  mid: 5_500,  max: 8_000  },
+      pleno:   { min: 7_000,  mid: 10_000, max: 14_000 },
+      senior:  { min: 12_000, mid: 18_000, max: 25_000 },
+    },
+  },
+  {
+    role: 'Gerente Comercial / Sales Manager',
+    aliases: [
+      'gerente comercial', 'sales manager', 'gerente de vendas',
+      'coordenador comercial', 'supervisor de vendas',
+      'líder comercial', 'head of sales', 'head comercial',
+    ],
+    levels: {
+      junior:  { min: 6_000,  mid: 8_500,  max: 12_000 },
+      pleno:   { min: 10_000, mid: 15_000, max: 22_000 },
+      senior:  { min: 18_000, mid: 26_000, max: 38_000 },
+      manager: { min: 25_000, mid: 38_000, max: 55_000 },
+    },
+  },
+  {
+    role: 'Marketing / Growth',
+    aliases: [
+      'marketing', 'growth', 'growth hacker', 'growth manager',
+      'analista de marketing', 'marketing digital',
+      'performance marketing', 'growth analyst',
+      'demand generation', 'inbound marketing',
+    ],
+    levels: {
+      junior:  { min: 2_500,  mid: 3_500,  max: 5_000  },
+      pleno:   { min: 5_000,  mid: 7_500,  max: 10_500 },
+      senior:  { min: 9_000,  mid: 14_000, max: 19_000 },
+      manager: { min: 15_000, mid: 22_000, max: 32_000 },
+    },
+  },
+  {
+    role: 'Operações de Receita / RevOps',
+    aliases: [
+      'revops', 'revenue operations', 'sales ops', 'sales operations',
+      'operações de vendas', 'cs ops', 'marketing ops',
+    ],
+    levels: {
+      junior:  { min: 3_500,  mid: 5_000,  max: 7_000  },
+      pleno:   { min: 7_000,  mid: 10_000, max: 14_000 },
+      senior:  { min: 12_000, mid: 17_000, max: 23_000 },
+    },
+  },
 ];
 
 // ─── Matching helpers ─────────────────────────────────────────────────────────
