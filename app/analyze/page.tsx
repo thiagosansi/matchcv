@@ -24,7 +24,8 @@ import {
   ChevronUp,
   Star,
 } from 'lucide-react';
-import { detectPlatform, PLATFORM_DISPLAY_NAMES } from '@/lib/platforms';
+import { detectPlatform } from '@/lib/platforms/detect';
+import { PLATFORM_DISPLAY_NAMES } from '@/lib/platforms/errors';
 
 type ResumeMode = 'pdf' | 'text';
 type PdfStatus = 'idle' | 'uploading' | 'success' | 'error';
