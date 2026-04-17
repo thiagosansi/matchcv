@@ -284,6 +284,132 @@ export const SALARY_BENCHMARKS: RoleBenchmark[] = [
     },
   },
 
+  // ── Liderança de Tecnologia ──────────────────────────────────────────────────
+  // Níveis interpretados por porte da empresa: junior=startup early, pleno=scale-up, senior=enterprise
+
+  {
+    role: 'Head de Tecnologia / VP Engineering',
+    aliases: [
+      'head of technology', 'head de tecnologia', 'head of engineering',
+      'vp of engineering', 'vp engineering', 'vp de tecnologia',
+      'diretor de tecnologia', 'diretor de engenharia',
+      'director of engineering', 'director of technology',
+    ],
+    levels: {
+      junior:  { min: 20_000, mid: 28_000, max: 40_000 },
+      pleno:   { min: 35_000, mid: 50_000, max: 70_000 },
+      senior:  { min: 60_000, mid: 85_000, max: 130_000 },
+    },
+  },
+  {
+    role: 'CTO',
+    aliases: [
+      'cto', 'chief technology officer', 'chief technical officer',
+      'cofundador técnico', 'co-founder cto',
+    ],
+    levels: {
+      junior:  { min: 18_000, mid: 25_000, max: 40_000 },   // startup early-stage
+      pleno:   { min: 40_000, mid: 60_000, max: 90_000 },   // scale-up
+      senior:  { min: 80_000, mid: 120_000, max: 200_000 }, // large enterprise
+    },
+  },
+
+  // ── Liderança Comercial ───────────────────────────────────────────────────────
+
+  {
+    role: 'Head Comercial / VP de Vendas',
+    aliases: [
+      'head comercial', 'head of sales', 'vp of sales', 'vp sales',
+      'vp comercial', 'diretor comercial', 'director of sales',
+      'diretor de vendas', 'vice-presidente comercial',
+    ],
+    levels: {
+      junior:  { min: 15_000, mid: 22_000, max: 32_000 },
+      pleno:   { min: 28_000, mid: 42_000, max: 60_000 },
+      senior:  { min: 50_000, mid: 75_000, max: 110_000 },
+    },
+  },
+  {
+    role: 'Chief Revenue Officer',
+    aliases: [
+      'cro', 'chief revenue officer', 'head of revenue',
+      'vp of revenue', 'diretor de receita',
+    ],
+    levels: {
+      junior:  { min: 20_000, mid: 30_000, max: 45_000 },
+      pleno:   { min: 45_000, mid: 65_000, max: 95_000 },
+      senior:  { min: 80_000, mid: 120_000, max: 180_000 },
+    },
+  },
+
+  // ── C-Level ──────────────────────────────────────────────────────────────────
+  // Valores de salário fixo CLT. Pacotes reais incluem equity, bônus e benefícios
+  // que podem elevar a remuneração total em 2–5x, especialmente em startups.
+  // Níveis: junior=startup early-stage, pleno=scale-up Series B/C, senior=enterprise/listada
+
+  {
+    role: 'CEO',
+    aliases: [
+      'ceo', 'chief executive officer', 'cofundador', 'co-founder',
+      'founder', 'fundador', 'presidente executivo',
+    ],
+    levels: {
+      junior:  { min: 15_000, mid: 22_000, max: 35_000 },
+      pleno:   { min: 40_000, mid: 65_000, max: 100_000 },
+      senior:  { min: 90_000, mid: 140_000, max: 250_000 },
+    },
+  },
+  {
+    role: 'CFO',
+    aliases: [
+      'cfo', 'chief financial officer', 'diretor financeiro',
+      'diretor de finanças', 'vp of finance', 'vp financeiro',
+      'head of finance', 'head financeiro',
+    ],
+    levels: {
+      junior:  { min: 15_000, mid: 22_000, max: 32_000 },
+      pleno:   { min: 35_000, mid: 52_000, max: 80_000 },
+      senior:  { min: 75_000, mid: 110_000, max: 180_000 },
+    },
+  },
+  {
+    role: 'COO',
+    aliases: [
+      'coo', 'chief operating officer', 'diretor de operações',
+      'vp of operations', 'vp operações', 'head of operations',
+    ],
+    levels: {
+      junior:  { min: 15_000, mid: 20_000, max: 30_000 },
+      pleno:   { min: 35_000, mid: 50_000, max: 75_000 },
+      senior:  { min: 70_000, mid: 100_000, max: 160_000 },
+    },
+  },
+  {
+    role: 'CMO',
+    aliases: [
+      'cmo', 'chief marketing officer', 'diretor de marketing',
+      'vp of marketing', 'vp marketing', 'head of marketing',
+    ],
+    levels: {
+      junior:  { min: 12_000, mid: 18_000, max: 28_000 },
+      pleno:   { min: 30_000, mid: 45_000, max: 68_000 },
+      senior:  { min: 65_000, mid: 95_000, max: 150_000 },
+    },
+  },
+  {
+    role: 'CPO',
+    aliases: [
+      'cpo', 'chief product officer', 'diretor de produto',
+      'vp of product', 'vp produto', 'head of product',
+      'chief product and technology officer', 'cpto',
+    ],
+    levels: {
+      junior:  { min: 14_000, mid: 20_000, max: 30_000 },
+      pleno:   { min: 35_000, mid: 52_000, max: 78_000 },
+      senior:  { min: 70_000, mid: 105_000, max: 165_000 },
+    },
+  },
+
   // ── Área Comercial ───────────────────────────────────────────────────────────
   // Valores de salário fixo (CLT). OTE (fixed + comissão) tipicamente 1.5–2.5x o fixo.
 
