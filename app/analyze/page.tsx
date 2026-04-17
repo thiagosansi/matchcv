@@ -24,6 +24,7 @@ import {
   ChevronUp,
   Star,
 } from 'lucide-react';
+import { detectPlatform, PLATFORM_DISPLAY_NAMES } from '@/lib/platforms';
 
 type ResumeMode = 'pdf' | 'text';
 type PdfStatus = 'idle' | 'uploading' | 'success' | 'error';
@@ -56,6 +57,8 @@ export default function AnalyzePage() {
   const [jobTab, setJobTab] = useState('text');
   const [urlLoading, setUrlLoading] = useState(false);
   const [urlError, setUrlError] = useState('');
+  const [urlInstruction, setUrlInstruction] = useState('');
+  const [fetchedPlatform, setFetchedPlatform] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -175,6 +178,8 @@ export default function AnalyzePage() {
 
     setUrlLoading(true);
     setUrlError('');
+    setUrlInstruction('');
+    setFetchedPlatform('');
 
     try {
       const res = await fetch('/api/parse-job', {
@@ -186,17 +191,16 @@ export default function AnalyzePage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Falha ao buscar a vaga');
+        setUrlError(data.error || 'Falha ao buscar a vaga');
+        if (data.instruction) setUrlInstruction(data.instruction);
+        return;
       }
 
       setJobText(data.text);
+      setFetchedPlatform(data.platform ? PLATFORM_DISPLAY_NAMES[data.platform as keyof typeof PLATFORM_DISPLAY_NAMES] ?? '' : '');
       setJobTab('text');
-    } catch (err) {
-      setUrlError(
-        err instanceof Error
-          ? err.message
-          : 'Erro ao buscar a URL. Cole o texto manualmente.'
-      );
+    } catch {
+      setUrlError('Erro ao buscar a URL. Cole o texto manualmente.');
     } finally {
       setUrlLoading(false);
     }
@@ -522,16 +526,34 @@ export default function AnalyzePage() {
 
               <TabsContent value="url" className="mt-3 space-y-3">
                 <div className="flex gap-2">
-                  <Input
-                    placeholder="https://jobs.gupy.io/..."
-                    value={jobUrl}
-                    onChange={(e) => setJobUrl(e.target.value)}
-                    className="h-10 text-sm"
-                    disabled={urlLoading || loading}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleFetchUrl();
-                    }}
-                  />
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder="https://jobs.gupy.io/..."
+                      value={jobUrl}
+                      onChange={(e) => {
+                        setJobUrl(e.target.value);
+                        setUrlError('');
+                        setUrlInstruction('');
+                        setFetchedPlatform('');
+                      }}
+                      className="h-10 text-sm pr-20"
+                      disabled={urlLoading || loading}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleFetchUrl();
+                      }}
+                    />
+                    {jobUrl.trim() && (() => {
+                      const p = detectPlatform(jobUrl);
+                      if (p !== 'generic') {
+                        return (
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full pointer-events-none">
+                            {PLATFORM_DISPLAY_NAMES[p]}
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
                   <Button
                     onClick={handleFetchUrl}
                     disabled={!jobUrl.trim() || urlLoading || loading}
@@ -542,16 +564,21 @@ export default function AnalyzePage() {
                 </div>
 
                 {urlError && (
-                  <p className="text-xs text-destructive flex items-center gap-1.5">
-                    <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                    {urlError}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-xs text-destructive flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      {urlError}
+                    </p>
+                    {urlInstruction && (
+                      <p className="text-xs text-muted-foreground pl-5">{urlInstruction}</p>
+                    )}
+                  </div>
                 )}
 
-                {jobText && (
+                {jobText && !urlError && (
                   <div className="p-3 rounded-lg bg-green-50 border border-green-200 text-xs text-green-700 flex items-center gap-2">
                     <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                    Texto extraído. Verifique na aba Texto.
+                    {fetchedPlatform ? `Texto extraído do ${fetchedPlatform}.` : 'Texto extraído.'} Verifique na aba Texto.
                   </div>
                 )}
 

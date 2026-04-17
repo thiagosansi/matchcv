@@ -102,6 +102,7 @@ export function ResultsView({
         jobTitle={jobStructured?.title ?? ''}
         jobCompany={jobStructured?.company ?? ''}
         executiveSummary={analysis.executiveSummary}
+        scoreBreakdown={analysis.scoreBreakdown}
       />
 
       <div className="rounded-xl border bg-card p-4 space-y-3">
@@ -126,7 +127,10 @@ export function ResultsView({
       )}
 
       {analysis.atsKeywords && analysis.atsKeywords.length > 0 && (
-        <ATSKeywordsCard keywords={analysis.atsKeywords} />
+        <ATSKeywordsCard
+          keywords={analysis.atsKeywords}
+          keywordMatch={analysis.keywordMatch}
+        />
       )}
 
       {salary && <SalaryCard salary={salary} />}

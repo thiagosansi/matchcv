@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     ]);
 
     const [analysis, salary] = await Promise.all([
-      analyzeCompatibility(resumeStructured, jobStructured),
+      analyzeCompatibility(resumeStructured, jobStructured, resumeText.trim()),
       estimateSalary(jobStructured),
     ]);
 

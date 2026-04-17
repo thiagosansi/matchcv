@@ -5,31 +5,8 @@ import { parseJob } from '@/lib/services/job-parser';
 import { analyzeCompatibility, optimizeResume } from '@/lib/services/analysis';
 import { estimateSalary } from '@/lib/services/salary';
 import { generateGupyTexts } from '@/lib/services/gupy';
-import type { OptimizedResume } from '@/types';
-
-function buildFallbackOptimizedText(optimized: OptimizedResume): string {
-  return [
-    optimized.summary ? `RESUMO PROFISSIONAL\n${optimized.summary}` : '',
-    optimized.highlights?.length
-      ? `DESTAQUES\n${optimized.highlights.map((item) => `• ${item}`).join('\n')}`
-      : '',
-    optimized.experiences?.length
-      ? `EXPERIÊNCIAS\n${optimized.experiences
-          .map(
-            (exp) =>
-              `${exp.title} | ${exp.company} | ${exp.period}\n${(exp.bullets ?? [])
-                .map((bullet) => `• ${bullet}`)
-                .join('\n')}`
-          )
-          .join('\n\n')}`
-      : '',
-    optimized.skills?.length ? `HABILIDADES\n${optimized.skills.join(', ')}` : '',
-    optimized.education?.length ? `FORMAÇÃO\n${optimized.education.join('\n')}` : '',
-  ]
-    .filter(Boolean)
-    .join('\n\n')
-    .trim();
-}
+import { detectPlatform } from '@/lib/platforms';
+import type { Platform } from '@/types';
 
 function parseMoneyToNumber(val: string): number {
   const num = parseFloat(val.replace(/[^\d,]/g, '').replace(',', '.'));
@@ -66,13 +43,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Detect platform from URL so parseJob can set isGupy and platform correctly
+    const platform: Platform = jobUrl ? detectPlatform(jobUrl) : 'generic';
+
     const [resumeStructured, jobStructured] = await Promise.all([
       parseResume(resumeText.trim()),
-      parseJob(jobText.trim()),
+      parseJob(jobText.trim(), platform),
     ]);
 
     const [analysis, salary] = await Promise.all([
-      analyzeCompatibility(resumeStructured, jobStructured),
+      analyzeCompatibility(resumeStructured, jobStructured, resumeText.trim()),
       estimateSalary(jobStructured),
     ]);
 
@@ -82,18 +62,6 @@ export async function POST(request: NextRequest) {
         ? generateGupyTexts(resumeStructured, jobStructured)
         : Promise.resolve(null),
     ]);
-
-    const optimizedText =
-      optimized.fullText?.trim() || buildFallbackOptimizedText(optimized);
-
-    const normalizedOptimized: OptimizedResume = {
-      summary: optimized.summary || '',
-      experiences: Array.isArray(optimized.experiences) ? optimized.experiences : [],
-      skills: Array.isArray(optimized.skills) ? optimized.skills : [],
-      education: Array.isArray(optimized.education) ? optimized.education : [],
-      highlights: Array.isArray(optimized.highlights) ? optimized.highlights : [],
-      fullText: optimizedText,
-    };
 
     const db = createServerClient();
 
@@ -127,8 +95,8 @@ export async function POST(request: NextRequest) {
         gaps_json: analysis.gaps,
         missing_keywords_json: analysis.atsKeywords,
         section_recommendations_json: analysis.sectionSuggestions,
-        optimized_resume_text: optimizedText,
-        optimized_resume_json: normalizedOptimized,
+        optimized_resume_text: optimized.fullText ?? '',
+        optimized_resume_json: optimized,
         executive_summary: analysis.executiveSummary,
         ats_keywords: analysis.atsKeywords,
         is_gupy: jobStructured.isGupy,
@@ -150,10 +118,7 @@ export async function POST(request: NextRequest) {
         human_text: gupySuggestions.human ?? '',
         objective_text: gupySuggestions.objective ?? '',
       });
-
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
     }
 
     if (analysisId && salary) {
@@ -166,17 +131,14 @@ export async function POST(request: NextRequest) {
         explanation: salary.explanation,
         source_summary: salary.factors?.join('; ') ?? '',
       });
-
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
     }
 
     return NextResponse.json({
       id: analysisId,
       jobStructured,
       analysis,
-      optimizedResume: normalizedOptimized,
+      optimizedResume: optimized,
       salary,
       gupySuggestions,
     });

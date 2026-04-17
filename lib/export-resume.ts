@@ -1,3 +1,4 @@
+import { buildResumeFullText } from '@/lib/build-resume-text';
 import type { JobStructured, OptimizedResume } from '@/types';
 
 function sanitizePart(value: string): string {
@@ -20,58 +21,20 @@ export function buildExportFileName(
   return `matchcv-${role}-${company}.${extension}`;
 }
 
+/**
+ * Returns the full resume text for export.
+ * Uses buildResumeFullText (deterministic, includes contact header) when the
+ * resume has structured data; falls back to stored fullText for legacy records.
+ */
 export function buildResumePlainText(
   optimizedResume: OptimizedResume,
-  jobStructured: JobStructured | null
+  _jobStructured: JobStructured | null
 ): string {
-  if (optimizedResume.fullText?.trim()) {
-    return optimizedResume.fullText.trim();
+  // Prefer deterministic build if we have structured content
+  if (optimizedResume.experiences?.length || optimizedResume.summary) {
+    return buildResumeFullText(optimizedResume);
   }
 
-  const sections: string[] = [];
-
-  if (jobStructured?.title) {
-    sections.push(`Currículo aderente à vaga: ${jobStructured.title}`);
-  } else {
-    sections.push('Currículo aderente à vaga');
-  }
-
-  if (jobStructured?.company) {
-    sections.push(`Empresa: ${jobStructured.company}`);
-  }
-
-  if (optimizedResume.summary?.trim()) {
-    sections.push(`RESUMO PROFISSIONAL\n${optimizedResume.summary.trim()}`);
-  }
-
-  if (optimizedResume.highlights?.length) {
-    sections.push(
-      `DESTAQUES\n${optimizedResume.highlights.map((item) => `- ${item}`).join('\n')}`
-    );
-  }
-
-  if (optimizedResume.experiences?.length) {
-    sections.push(
-      `EXPERIÊNCIAS\n${optimizedResume.experiences
-        .map((exp) => {
-          const bullets = exp.bullets?.length
-            ? `\n${exp.bullets.map((b) => `- ${b}`).join('\n')}`
-            : '';
-          return `${exp.title} | ${exp.company} | ${exp.period}${bullets}`;
-        })
-        .join('\n\n')}`
-    );
-  }
-
-  if (optimizedResume.skills?.length) {
-    sections.push(`COMPETÊNCIAS\n${optimizedResume.skills.join(', ')}`);
-  }
-
-  if (optimizedResume.education?.length) {
-    sections.push(
-      `FORMAÇÃO\n${optimizedResume.education.map((item) => `- ${item}`).join('\n')}`
-    );
-  }
-
-  return sections.join('\n\n');
+  // Legacy fallback for old DB records without structured data
+  return optimizedResume.fullText?.trim() ?? '';
 }

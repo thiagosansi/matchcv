@@ -126,6 +126,8 @@ export default function ResultsPage() {
     gaps: analysis.gaps_json ?? [],
     sectionSuggestions: analysis.section_recommendations_json ?? [],
     atsKeywords: analysis.ats_keywords ?? [],
+    keywordMatch: [],
+    scoreBreakdown: [],
   };
 
   const optimizedResume = normalizeOptimizedResume(

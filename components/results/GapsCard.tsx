@@ -18,12 +18,16 @@ const typeIcon = {
   skill: <AlertTriangle className="w-3.5 h-3.5" />,
   keyword: <Key className="w-3.5 h-3.5" />,
   experience: <TrendingDown className="w-3.5 h-3.5" />,
+  tool: <Key className="w-3.5 h-3.5" />,
+  seniority: <TrendingDown className="w-3.5 h-3.5" />,
 };
 
 const typeLabel = {
   skill: 'Competência',
   keyword: 'Palavra-chave',
   experience: 'Experiência',
+  tool: 'Ferramenta',
+  seniority: 'Senioridade',
 };
 
 export function GapsCard({ gaps, strengths }: GapsCardProps) {

@@ -1,5 +1,5 @@
 import { callOpenAI } from './openai';
-import type { ResumeStructured } from '@/types';
+import type { ResumeStructured, ContactInfo } from '@/types';
 
 const SYSTEM_PROMPT = `
 Você extrai dados estruturados de currículos.
@@ -15,6 +15,14 @@ Regras:
 
 Estrutura:
 {
+  "contact": {
+    "name": "string",
+    "email": "string",
+    "phone": "string",
+    "linkedin": "string",
+    "location": "string",
+    "portfolio": "string"
+  },
   "summary": "string",
   "experiences": [
     {
@@ -47,7 +55,8 @@ Estrutura:
       "description": "string",
       "technologies": ["string"]
     }
-  ]
+  ],
+  "certifications": ["string"]
 }
 `;
 
@@ -74,7 +83,6 @@ function normalizeArray(value: unknown): string[] {
 function dedupe(values: string[]): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
-
   for (const value of values) {
     const key = value.toLowerCase();
     if (!seen.has(key)) {
@@ -82,7 +90,6 @@ function dedupe(values: string[]): string[] {
       result.push(value);
     }
   }
-
   return result;
 }
 
@@ -90,8 +97,33 @@ function clipText(text: string, maxChars = 12000): string {
   return text.length > maxChars ? text.slice(0, maxChars) : text;
 }
 
+function normalizeContact(value: unknown): ContactInfo {
+  const empty: ContactInfo = {
+    name: '',
+    email: '',
+    phone: '',
+    linkedin: '',
+    location: '',
+    portfolio: '',
+  };
+
+  if (!value || typeof value !== 'object') return empty;
+
+  const c = value as Record<string, unknown>;
+  return {
+    name: normalizeString(c.name),
+    email: normalizeString(c.email),
+    phone: normalizeString(c.phone),
+    linkedin: normalizeString(c.linkedin),
+    location: normalizeString(c.location),
+    portfolio: normalizeString(c.portfolio),
+  };
+}
+
 function normalizeResume(result: ResumeStructured): ResumeStructured {
   return {
+    contact: normalizeContact(result.contact),
+
     summary: normalizeString(result.summary),
 
     experiences: Array.isArray(result.experiences)
@@ -138,6 +170,8 @@ function normalizeResume(result: ResumeStructured): ResumeStructured {
             technologies: dedupe(normalizeArray(proj.technologies)),
           }))
       : [],
+
+    certifications: dedupe(normalizeArray(result.certifications)),
   };
 }
 
@@ -156,6 +190,8 @@ export async function parseResume(resumeText: string): Promise<ResumeStructured>
     'Extraia o currículo abaixo para JSON estruturado.',
     'Use apenas o que estiver explícito.',
     'Não invente informações.',
+    'Para contact.linkedin: extraia a URL ou username do LinkedIn se presente.',
+    'Para contact.location: extraia cidade e estado (ex: "São Paulo, SP").',
     '',
     `curriculo=${JSON.stringify(cleanedText)}`,
   ].join('\n');
@@ -165,7 +201,7 @@ export async function parseResume(resumeText: string): Promise<ResumeStructured>
     fallbackPreset: 'quality',
     requireJson: true,
     temperature: 0.1,
-    maxTokens: 2000,
+    maxTokens: 2200,
     timeoutMs: 30000,
   });
 

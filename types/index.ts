@@ -1,11 +1,26 @@
-export interface ResumeStructured {
-  summary: string;
-  experiences: Experience[];
-  skills: string[];
-  tools: string[];
-  education: Education[];
-  languages: Language[];
-  projects: Project[];
+// ─── Platform ────────────────────────────────────────────────────────────────
+
+export type Platform =
+  | 'gupy'
+  | 'inhire'
+  | 'greenhouse'
+  | 'lever'
+  | 'linkedin'
+  | 'catho'
+  | 'vagas_com'
+  | 'infojobs'
+  | 'kenoby'
+  | 'generic';
+
+// ─── Resume ──────────────────────────────────────────────────────────────────
+
+export interface ContactInfo {
+  name: string;
+  email: string;
+  phone: string;
+  linkedin: string;
+  location: string;
+  portfolio?: string;
 }
 
 export interface Experience {
@@ -34,6 +49,20 @@ export interface Project {
   technologies: string[];
 }
 
+export interface ResumeStructured {
+  contact: ContactInfo;
+  summary: string;
+  experiences: Experience[];
+  skills: string[];
+  tools: string[];
+  education: Education[];
+  languages: Language[];
+  projects: Project[];
+  certifications?: string[];
+}
+
+// ─── Job ─────────────────────────────────────────────────────────────────────
+
 export interface JobStructured {
   title: string;
   company: string;
@@ -46,19 +75,13 @@ export interface JobStructured {
   location: string;
   workModel: string;
   isGupy: boolean;
+  platform: Platform;
 }
 
-export interface AnalysisResult {
-  score: number;
-  executiveSummary: string;
-  strengths: string[];
-  gaps: Gap[];
-  sectionSuggestions: SectionSuggestion[];
-  atsKeywords: string[];
-}
+// ─── Analysis ────────────────────────────────────────────────────────────────
 
 export interface Gap {
-  type: 'skill' | 'keyword' | 'experience';
+  type: 'skill' | 'keyword' | 'experience' | 'tool' | 'seniority';
   description: string;
   importance: 'high' | 'medium' | 'low';
 }
@@ -71,14 +94,31 @@ export interface SectionSuggestion {
   reduce: string[];
 }
 
-export interface OptimizedResume {
-  summary: string;
-  experiences: OptimizedExperience[];
-  skills: string[];
-  education: string[];
-  highlights: string[];
-  fullText?: string;
+export interface KeywordMatch {
+  keyword: string;
+  found: boolean;
+  location?: string;
 }
+
+export interface ScoreDimension {
+  label: string;
+  score: number;
+  weight: number;
+  note: string;
+}
+
+export interface AnalysisResult {
+  score: number;
+  executiveSummary: string;
+  strengths: string[];
+  gaps: Gap[];
+  sectionSuggestions: SectionSuggestion[];
+  atsKeywords: string[];
+  keywordMatch: KeywordMatch[];
+  scoreBreakdown: ScoreDimension[];
+}
+
+// ─── Optimized Resume ────────────────────────────────────────────────────────
 
 export interface OptimizedExperience {
   title: string;
@@ -86,6 +126,20 @@ export interface OptimizedExperience {
   period: string;
   bullets: string[];
 }
+
+export interface OptimizedResume {
+  contact?: ContactInfo;
+  summary: string;
+  experiences: OptimizedExperience[];
+  skills: string[];
+  education: string[];
+  highlights: string[];
+  languages?: string[];
+  certifications?: string[];
+  fullText?: string;
+}
+
+// ─── Salary & Gupy ───────────────────────────────────────────────────────────
 
 export interface SalarySuggestion {
   min: string;
@@ -100,6 +154,8 @@ export interface GupySuggestion {
   human: string;
   objective: string;
 }
+
+// ─── DB models ───────────────────────────────────────────────────────────────
 
 export interface DbResume {
   id: string;
@@ -155,6 +211,8 @@ export interface DbSalarySuggestion {
   source_summary: string;
   created_at: string;
 }
+
+// ─── API response ─────────────────────────────────────────────────────────────
 
 export interface AnalyzeApiResponse {
   id: string;

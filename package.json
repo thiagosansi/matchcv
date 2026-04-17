@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "test:e2e:local": "PLAYWRIGHT_BASE_URL=http://localhost:3000 playwright test"
+    "test:e2e:local": "PLAYWRIGHT_BASE_URL=http://localhost:3000 playwright test",
+    "test:pipeline": "node --env-file=.env --require tsx/cjs scripts/test-pipeline.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -77,6 +78,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1"
+    "@playwright/test": "^1.59.1",
+    "tsx": "^4.21.0"
   }
 }
