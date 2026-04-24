@@ -184,6 +184,7 @@ export interface DbJobAnalysis {
   optimized_resume_json?: OptimizedResume | null;
   executive_summary: string;
   ats_keywords: string[];
+  ats_score_json?: ATSScoreResult | null;
   is_gupy: boolean;
   status: string;
   created_at: string;
@@ -256,7 +257,7 @@ export interface ProfileSkill {
   created_at: string;
 }
 
-export interface ContactInfo {
+export interface ProfileContactInfo {
   linkedin?: string;
   phone?: string;
   location?: string;
@@ -268,7 +269,7 @@ export interface FullProfile {
   full_name: string;
   professional_goal: string;
   base_summary: string;
-  contact_info: ContactInfo;
+  contact_info: ProfileContactInfo;
   work_experiences: WorkExperience[];
   education: EducationEntry[];
   skills: ProfileSkill[];
@@ -298,6 +299,7 @@ export interface AnalyzeApiResponse {
   id: string;
   jobStructured: JobStructured;
   analysis: AnalysisResult;
+  atsScore: ATSScoreResult;
   optimizedResume: OptimizedResume;
   salary: SalarySuggestion;
   gupySuggestions: GupySuggestion | null;

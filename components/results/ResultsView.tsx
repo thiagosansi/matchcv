@@ -18,6 +18,7 @@ import type {
   SalarySuggestion,
   GupySuggestion,
   JobStructured,
+  ATSScoreResult,
 } from '@/types';
 import {
   Plus,
@@ -35,6 +36,7 @@ interface ResultsViewProps {
   optimizedResume: OptimizedResume;
   salary: SalarySuggestion | null;
   gupySuggestions: GupySuggestion | null;
+  atsScore?: ATSScoreResult;
   createdAt?: string;
   showBackButton?: boolean;
 }
@@ -46,6 +48,7 @@ export function ResultsView({
   optimizedResume,
   salary,
   gupySuggestions,
+  atsScore,
   showBackButton = true,
 }: ResultsViewProps) {
   return (
@@ -102,7 +105,7 @@ export function ResultsView({
         jobTitle={jobStructured?.title ?? ''}
         jobCompany={jobStructured?.company ?? ''}
         executiveSummary={analysis.executiveSummary}
-        scoreBreakdown={analysis.scoreBreakdown}
+        atsScore={atsScore}
       />
 
       <div className="rounded-xl border bg-card p-4 space-y-3">
@@ -126,10 +129,10 @@ export function ResultsView({
         <SuggestionsCard suggestions={analysis.sectionSuggestions} />
       )}
 
-      {analysis.atsKeywords && analysis.atsKeywords.length > 0 && (
+      {(atsScore || (analysis.atsKeywords && analysis.atsKeywords.length > 0)) && (
         <ATSKeywordsCard
-          keywords={analysis.atsKeywords}
-          keywordMatch={analysis.keywordMatch}
+          keywords={analysis.atsKeywords ?? []}
+          atsScore={atsScore}
         />
       )}
 

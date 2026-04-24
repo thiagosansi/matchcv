@@ -12,6 +12,7 @@ import type {
   OptimizedResume,
   GupySuggestion,
   SalarySuggestion,
+  ATSScoreResult,
 } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -158,6 +159,8 @@ export default function ResultsPage() {
       }
     : null;
 
+  const atsScore = analysis.ats_score_json as ATSScoreResult | null;
+
   return (
     <ResultsView
       score={analysis.match_score}
@@ -166,6 +169,7 @@ export default function ResultsPage() {
       optimizedResume={optimizedResume}
       salary={salarySuggestion}
       gupySuggestions={gupySuggestion}
+      atsScore={atsScore ?? undefined}
       createdAt={analysis.created_at}
     />
   );

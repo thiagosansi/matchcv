@@ -6,6 +6,8 @@ import { analyzeCompatibility, optimizeResume } from '@/lib/services/analysis';
 import { estimateSalary } from '@/lib/services/salary';
 import { generateGupyTexts } from '@/lib/services/gupy';
 import { detectPlatform } from '@/lib/platforms';
+import { getFullProfile, fullProfileToResumeStructured } from '@/lib/data/profile';
+import { calculateATSScore } from '@/lib/ats-score';
 import type { Platform } from '@/types';
 
 function parseMoneyToNumber(val: string): number {
@@ -46,8 +48,16 @@ export async function POST(request: NextRequest) {
     // Detect platform from URL so parseJob can set isGupy and platform correctly
     const platform: Platform = jobUrl ? detectPlatform(jobUrl) : 'generic';
 
+    // Attempt to load structured profile — fall back to raw text parsing if not available
+    const fullProfile = await getFullProfile(userId).catch(() => null);
+    const hasStructuredProfile =
+      fullProfile !== null &&
+      (fullProfile.work_experiences.length > 0 || fullProfile.skills.length > 0);
+
     const [resumeStructured, jobStructured] = await Promise.all([
-      parseResume(resumeText.trim()),
+      hasStructuredProfile
+        ? Promise.resolve(fullProfileToResumeStructured(fullProfile!))
+        : parseResume(resumeText.trim()),
       parseJob(jobText.trim(), platform),
     ]);
 
@@ -55,6 +65,9 @@ export async function POST(request: NextRequest) {
       analyzeCompatibility(resumeStructured, jobStructured, resumeText.trim()),
       estimateSalary(jobStructured),
     ]);
+
+    // Hybrid ATS score: deterministic rule-based engine (complements AI score)
+    const atsScore = calculateATSScore(resumeStructured, jobStructured);
 
     const [optimized, gupySuggestions] = await Promise.all([
       optimizeResume(resumeStructured, jobStructured, analysis, resumeText.trim()),
@@ -90,15 +103,20 @@ export async function POST(request: NextRequest) {
         job_url: jobUrl ?? '',
         job_raw_text: jobText.trim(),
         job_structured_json: jobStructured,
-        match_score: analysis.score,
+        match_score: atsScore.total,
         strengths_json: analysis.strengths,
         gaps_json: analysis.gaps,
-        missing_keywords_json: analysis.atsKeywords,
+        missing_keywords_json: atsScore.missingKeywords.length > 0
+          ? atsScore.missingKeywords
+          : analysis.atsKeywords,
         section_recommendations_json: analysis.sectionSuggestions,
         optimized_resume_text: optimized.fullText ?? '',
         optimized_resume_json: optimized,
         executive_summary: analysis.executiveSummary,
-        ats_keywords: analysis.atsKeywords,
+        ats_keywords: atsScore.foundKeywords.length > 0
+          ? atsScore.foundKeywords
+          : analysis.atsKeywords,
+        ats_score_json: atsScore,
         is_gupy: jobStructured.isGupy,
         status: 'completed',
       })
@@ -138,6 +156,7 @@ export async function POST(request: NextRequest) {
       id: analysisId,
       jobStructured,
       analysis,
+      atsScore,
       optimizedResume: optimized,
       salary,
       gupySuggestions,
