@@ -30,8 +30,10 @@ import {
   User,
   CheckCircle,
   Loader2,
+  Upload,
 } from 'lucide-react';
 import type { WorkExperience, EducationEntry, ProfileSkill, SkillCategory } from '@/types';
+import type { ProfileImportPreview } from '@/lib/services/profile-import';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -136,6 +138,14 @@ export default function ProfilePage() {
   const [newSkillName, setNewSkillName] = useState('');
   const [newSkillCategory, setNewSkillCategory] = useState<SkillCategory>('technical');
   const [skillSaving, setSkillSaving] = useState(false);
+
+  // Import state
+  const [importText, setImportText] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
+  const [importPreview, setImportPreview] = useState<ProfileImportPreview | null>(null);
+  const [importError, setImportError] = useState('');
+  const [importSaving, setImportSaving] = useState(false);
+  const [importSuccess, setImportSuccess] = useState('');
 
   // ─── Bootstrap ─────────────────────────────────────────────────────────────
 
@@ -412,6 +422,76 @@ export default function ProfilePage() {
       body: JSON.stringify({ id }),
     });
     setSkills((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  // ─── Import handlers ──────────────────────────────────────────────────────
+
+  const handleExtractImport = async () => {
+    if (!importText.trim()) return;
+    setImportLoading(true);
+    setImportError('');
+    setImportPreview(null);
+    try {
+      const res = await fetch('/api/profile/import-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText: importText }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Falha na extração');
+      setImportPreview(data as ProfileImportPreview);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Falha ao extrair dados');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPreview) return;
+    setImportSaving(true);
+    setImportError('');
+
+    try {
+      // Save experiences sequentially to preserve order
+      for (const exp of importPreview.experiences) {
+        await fetch('/api/profile/experiences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(exp),
+        });
+      }
+
+      // Save education
+      for (const edu of importPreview.education) {
+        await fetch('/api/profile/education', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(edu),
+        });
+      }
+
+      // Save skills
+      for (const skill of importPreview.skills) {
+        await fetch('/api/profile/skills', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(skill),
+        });
+      }
+
+      // Refresh all sections
+      await Promise.all([loadExperiences(), loadEducation(), loadSkills()]);
+
+      setImportPreview(null);
+      setImportText('');
+      setImportSuccess('Perfil importado com sucesso!');
+      setTimeout(() => setImportSuccess(''), 4000);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Falha ao salvar dados importados');
+    } finally {
+      setImportSaving(false);
+    }
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
@@ -978,6 +1058,145 @@ export default function ProfilePage() {
                     ))}
                   </Tabs>
                 </>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* ── Importar do PDF ──────────────────────────────────────── */}
+          <AccordionItem value="import" className="border rounded-lg px-1">
+            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Upload className="w-4 h-4 text-primary" />
+                Importar do PDF / currículo existente
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4 space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Cole o texto do seu currículo abaixo. A IA vai extrair experiências,
+                formação e skills para pré-preencher seu perfil. Você revisa antes de confirmar.
+              </p>
+
+              {importSuccess && (
+                <Alert className="border-green-200 bg-green-50">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800 text-sm">{importSuccess}</AlertDescription>
+                </Alert>
+              )}
+
+              {!importPreview && (
+                <div className="space-y-3">
+                  <Textarea
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    placeholder="Cole aqui o texto completo do seu currículo..."
+                    rows={8}
+                    className="text-sm font-mono resize-y"
+                  />
+                  {importError && (
+                    <p className="text-xs text-destructive">{importError}</p>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={handleExtractImport}
+                    disabled={importLoading || importText.trim().length < 50}
+                    className="gap-1.5"
+                  >
+                    {importLoading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5" />
+                    )}
+                    Extrair dados
+                  </Button>
+                </div>
+              )}
+
+              {importPreview && (
+                <div className="space-y-4">
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-3 text-sm">
+                    <p className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
+                      Prévia extraída — revise antes de confirmar
+                    </p>
+
+                    {importPreview.experiences.length > 0 && (
+                      <div>
+                        <p className="font-medium mb-1 flex items-center gap-1">
+                          <Briefcase className="w-3.5 h-3.5" />
+                          {importPreview.experiences.length} experiência(s)
+                        </p>
+                        <ul className="space-y-1 pl-5 text-muted-foreground text-xs list-disc">
+                          {importPreview.experiences.map((exp, i) => (
+                            <li key={i}>{exp.title} — {exp.company}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {importPreview.education.length > 0 && (
+                      <div>
+                        <p className="font-medium mb-1 flex items-center gap-1">
+                          <GraduationCap className="w-3.5 h-3.5" />
+                          {importPreview.education.length} formação(ões)
+                        </p>
+                        <ul className="space-y-1 pl-5 text-muted-foreground text-xs list-disc">
+                          {importPreview.education.map((edu, i) => (
+                            <li key={i}>{edu.degree} — {edu.institution}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {importPreview.skills.length > 0 && (
+                      <div>
+                        <p className="font-medium mb-1 flex items-center gap-1">
+                          <Zap className="w-3.5 h-3.5" />
+                          {importPreview.skills.length} skill(s)
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {importPreview.skills.slice(0, 12).map((skill, i) => (
+                            <Badge key={i} variant="outline" className="text-xs px-2 py-0.5 font-normal">
+                              {skill.name}
+                            </Badge>
+                          ))}
+                          {importPreview.skills.length > 12 && (
+                            <Badge variant="outline" className="text-xs px-2 py-0.5 font-normal text-muted-foreground">
+                              +{importPreview.skills.length - 12}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {importError && (
+                    <p className="text-xs text-destructive">{importError}</p>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleConfirmImport}
+                      disabled={importSaving}
+                      className="gap-1.5"
+                    >
+                      {importSaving ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle className="w-3.5 h-3.5" />
+                      )}
+                      Confirmar e salvar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setImportPreview(null); setImportError(''); }}
+                      disabled={importSaving}
+                    >
+                      <X className="w-3.5 h-3.5 mr-1" />
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
               )}
             </AccordionContent>
           </AccordionItem>
