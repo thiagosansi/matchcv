@@ -31,8 +31,17 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+      const authPromise = supabase.auth.signInWithPassword({ email, password });
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 10000)
+      );
+
+      const { error } = await Promise.race([authPromise, timeoutPromise]);
+
+      clearTimeout(timeoutId);
       setLoading(false);
 
       if (error) {
@@ -42,9 +51,14 @@ export default function LoginPage() {
 
       const next = searchParams.get('next') ?? '/dashboard';
       router.push(next);
-    } catch {
+    } catch (err) {
       setLoading(false);
-      setError('Erro ao conectar. Tente novamente em instantes.');
+      const isTimeout = err instanceof Error && err.message === 'timeout';
+      setError(
+        isTimeout
+          ? 'Servidor demorou para responder. Verifique sua conexão e tente novamente.'
+          : 'Erro ao conectar. Tente novamente em instantes.'
+      );
     }
   };
 
