@@ -139,7 +139,7 @@ export function ResultsView({
       {salary && <SalaryCard salary={salary} />}
 
       {jobStructured?.isGupy && gupySuggestions && (
-        <GupyCard suggestions={gupySuggestions} />
+        <GupyCard suggestions={gupySuggestions} jobStructured={jobStructured} />
       )}
 
       <Alert className="border-yellow-200 bg-yellow-50">
