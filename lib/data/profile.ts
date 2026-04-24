@@ -1,14 +1,15 @@
-import { createServerClient } from '@/lib/supabase';
+import { createAuthServerClient } from '@/lib/server-auth';
 import type { FullProfile, WorkExperience, EducationEntry, ProfileSkill, ProfileContactInfo } from '@/types';
 
 /**
  * Fetches the complete structured profile for a user.
  * Used by the analyze pipeline to build the AI input from structured data.
  *
+ * Uses cookie-based auth client so RLS policies resolve auth.uid() correctly.
  * Returns null if the user has no profile record.
  */
 export async function getFullProfile(userId: string): Promise<FullProfile | null> {
-  const db = createServerClient();
+  const db = createAuthServerClient();
 
   const [profileRes, experiencesRes, educationRes, skillsRes] = await Promise.all([
     db
