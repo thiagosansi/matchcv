@@ -53,12 +53,16 @@ export default function LoginPage() {
       router.push(next);
     } catch (err) {
       setLoading(false);
-      const isTimeout = err instanceof Error && err.message === 'timeout';
-      setError(
-        isTimeout
-          ? 'Servidor demorou para responder. Verifique sua conexão e tente novamente.'
-          : 'Erro ao conectar. Tente novamente em instantes.'
-      );
+      if (err instanceof Error && err.message === 'timeout') {
+        setError('Servidor demorou para responder. Verifique sua conexão e tente novamente.');
+      } else if (err instanceof Error && err.message.includes('fetch')) {
+        setError('Falha de conexão. Verifique sua internet e tente novamente.');
+      } else {
+        setError('Erro ao conectar. Tente novamente em instantes.');
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[login] unexpected error:', err);
+        }
+      }
     }
   };
 
