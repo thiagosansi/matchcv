@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { getSupabaseBrowserClient, isSupabaseConfigured } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,12 @@ export default function LoginPage() {
 
   const handleLogin = async () => {
     setError('');
+
+    if (!isSupabaseConfigured()) {
+      setError('Configuração do servidor incompleta. Acesse a URL de produção em vez de uma URL de preview do Vercel.');
+      return;
+    }
+
     setLoading(true);
 
     try {
