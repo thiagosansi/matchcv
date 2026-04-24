@@ -175,7 +175,15 @@ function normalizeResume(result: ResumeStructured): ResumeStructured {
   };
 }
 
-export async function parseResume(resumeText: string): Promise<ResumeStructured> {
+interface ParseResumeOptions {
+  /** Use quality model and higher token budget — for full-profile imports with many entries. */
+  fullExtraction?: boolean;
+}
+
+export async function parseResume(
+  resumeText: string,
+  opts: ParseResumeOptions = {}
+): Promise<ResumeStructured> {
   const cleanedText = clipText(
     resumeText
       .replace(/\r\n/g, '\n')
@@ -190,6 +198,7 @@ export async function parseResume(resumeText: string): Promise<ResumeStructured>
     'Extraia o currículo abaixo para JSON estruturado.',
     'Use apenas o que estiver explícito.',
     'Não invente informações.',
+    'Extraia TODAS as experiências profissionais presentes, sem omitir nenhuma.',
     'Para contact.linkedin: extraia a URL ou username do LinkedIn se presente.',
     'Para contact.location: extraia cidade e estado (ex: "São Paulo, SP").',
     '',
@@ -197,12 +206,14 @@ export async function parseResume(resumeText: string): Promise<ResumeStructured>
   ].join('\n');
 
   const result = await callOpenAI(SYSTEM_PROMPT, userPrompt, {
-    preset: 'fast',
+    // Full extraction (import): use quality model with large token budget
+    // Fast parse (analyze fallback): use fast model with smaller budget
+    preset: opts.fullExtraction ? 'quality' : 'fast',
     fallbackPreset: 'quality',
     requireJson: true,
     temperature: 0.1,
-    maxTokens: 2200,
-    timeoutMs: 30000,
+    maxTokens: opts.fullExtraction ? 8000 : 2200,
+    timeoutMs: opts.fullExtraction ? 60000 : 30000,
   });
 
   return normalizeResume(

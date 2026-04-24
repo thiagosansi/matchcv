@@ -111,7 +111,7 @@ function classifySkills(skills: string[], tools: string[], languages: { name: st
 }
 
 export async function extractProfileFromText(rawText: string): Promise<ProfileImportPreview> {
-  const parsed: ResumeStructured = await parseResume(rawText);
+  const parsed: ResumeStructured = await parseResume(rawText, { fullExtraction: true });
 
   const experiences: ImportedExperience[] = parsed.experiences.map((exp) => {
     const { start_date, end_date, is_current } = parsePeriod(exp.period);
