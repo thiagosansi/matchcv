@@ -146,7 +146,14 @@ function buildRequestBody(
   return body;
 }
 
+function isRequestTooLargeError(status: number): boolean {
+  return status === 413;
+}
+
 function isRateLimitError(status: number, message: string): boolean {
+  // 413 means the payload itself is too large — NOT a transient rate limit.
+  // Retrying (even with another key) won't help; the caller must reduce input.
+  if (isRequestTooLargeError(status)) return false;
   const normalized = message.toLowerCase();
   return (
     status === 429 ||

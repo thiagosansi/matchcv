@@ -404,8 +404,11 @@ export async function optimizeResume(
   analysis: AnalysisResult,
   resumeText?: string
 ): Promise<OptimizedResume> {
+  // Keep rawClip small — Groq free tier is limited to ~6000 total tokens per request.
+  // The structured data (compactResumeForOptimization) is the primary source;
+  // rawClip just helps preserve verbatim phrasing for bullet rewriting.
   const rawClip = resumeText
-    ? resumeText.replace(/\s+/g, ' ').trim().slice(0, 9000)
+    ? resumeText.replace(/\s+/g, ' ').trim().slice(0, 1500)
     : '';
 
   const compactAnalysis = compactAnalysisForOptimization(analysis);
@@ -438,7 +441,8 @@ export async function optimizeResume(
     fallbackPreset: 'fast',
     requireJson: true,
     temperature: 0.2,
-    maxTokens: 8000,
+    // ~2500 input tokens + 3200 output = ~5700 total — fits in Groq free tier (6000 TPM)
+    maxTokens: 3200,
     timeoutMs: 90000,
   });
 
