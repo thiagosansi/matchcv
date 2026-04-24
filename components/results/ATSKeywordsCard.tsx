@@ -3,21 +3,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Key, CheckCircle2, XCircle } from 'lucide-react';
-import type { KeywordMatch } from '@/types';
+import type { ATSScoreResult } from '@/types';
 
 interface ATSKeywordsCardProps {
   keywords: string[];
-  keywordMatch?: KeywordMatch[];
+  atsScore?: ATSScoreResult;
 }
 
-export function ATSKeywordsCard({ keywords, keywordMatch }: ATSKeywordsCardProps) {
-  if (!keywords || keywords.length === 0) return null;
+export function ATSKeywordsCard({ keywords, atsScore }: ATSKeywordsCardProps) {
+  // Prefer rule-based ATS result when available
+  const found = atsScore?.foundKeywords ?? [];
+  const missing = atsScore?.missingKeywords ?? [];
+  const hasAts = found.length > 0 || missing.length > 0;
 
-  const hasMatch = keywordMatch && keywordMatch.length > 0;
-  const found = hasMatch ? keywordMatch.filter((k) => k.found) : [];
-  const missing = hasMatch ? keywordMatch.filter((k) => !k.found) : [];
+  if (!hasAts && (!keywords || keywords.length === 0)) return null;
 
-  if (hasMatch) {
+  if (hasAts) {
     return (
       <Card className="border-border">
         <CardHeader className="pb-3">
@@ -39,13 +40,13 @@ export function ATSKeywordsCard({ keywords, keywordMatch }: ATSKeywordsCardProps
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {missing.map((k, i) => (
+                {missing.map((kw, i) => (
                   <Badge
                     key={i}
                     variant="outline"
                     className="text-xs px-2.5 py-1 font-medium border-red-200 text-red-700 bg-red-50"
                   >
-                    {k.keyword}
+                    {kw}
                   </Badge>
                 ))}
               </div>
@@ -61,13 +62,13 @@ export function ATSKeywordsCard({ keywords, keywordMatch }: ATSKeywordsCardProps
                 </span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {found.map((k, i) => (
+                {found.map((kw, i) => (
                   <Badge
                     key={i}
                     variant="outline"
                     className="text-xs px-2.5 py-1 font-medium border-green-200 text-green-700 bg-green-50"
                   >
-                    {k.keyword}
+                    {kw}
                   </Badge>
                 ))}
               </div>
@@ -78,7 +79,8 @@ export function ATSKeywordsCard({ keywords, keywordMatch }: ATSKeywordsCardProps
     );
   }
 
-  // Legacy fallback: no match data (old records from DB)
+  // Legacy fallback: old records from DB without ats_score_json
+  if (!keywords || keywords.length === 0) return null;
   return (
     <Card className="border-border">
       <CardHeader className="pb-3">

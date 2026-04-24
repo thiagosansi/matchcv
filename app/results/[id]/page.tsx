@@ -12,6 +12,7 @@ import type {
   OptimizedResume,
   GupySuggestion,
   SalarySuggestion,
+  ATSScoreResult,
 } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -37,11 +38,14 @@ function normalizeOptimizedResume(
 ): OptimizedResume {
   if (value && typeof value === 'object') {
     return {
+      contact: value.contact ?? undefined,
       summary: typeof value.summary === 'string' ? value.summary : '',
       experiences: Array.isArray(value.experiences) ? value.experiences : [],
       skills: Array.isArray(value.skills) ? value.skills : [],
       education: Array.isArray(value.education) ? value.education : [],
       highlights: Array.isArray(value.highlights) ? value.highlights : [],
+      languages: Array.isArray(value.languages) ? value.languages : undefined,
+      certifications: Array.isArray(value.certifications) ? value.certifications : undefined,
       fullText:
         typeof value.fullText === 'string' && value.fullText.trim()
           ? value.fullText
@@ -158,6 +162,8 @@ export default function ResultsPage() {
       }
     : null;
 
+  const atsScore = analysis.ats_score_json as ATSScoreResult | null;
+
   return (
     <ResultsView
       score={analysis.match_score}
@@ -166,6 +172,7 @@ export default function ResultsPage() {
       optimizedResume={optimizedResume}
       salary={salarySuggestion}
       gupySuggestions={gupySuggestion}
+      atsScore={atsScore ?? undefined}
       createdAt={analysis.created_at}
     />
   );

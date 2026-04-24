@@ -1,6 +1,19 @@
 import { callOpenAI } from './openai';
 import type { ResumeStructured, ContactInfo } from '@/types';
 
+const RESUME_JSON_SCHEMA = `
+{
+  "contact": { "name": "string", "email": "string", "phone": "string", "linkedin": "string", "location": "string", "portfolio": "string" },
+  "summary": "string",
+  "experiences": [{ "title": "string", "company": "string", "period": "string", "description": "string", "achievements": ["string"] }],
+  "skills": ["string"],
+  "tools": ["string"],
+  "education": [{ "degree": "string", "institution": "string", "period": "string", "field": "string" }],
+  "languages": [{ "name": "string", "level": "string" }],
+  "projects": [{ "name": "string", "description": "string", "technologies": ["string"] }],
+  "certifications": ["string"]
+}`;
+
 const SYSTEM_PROMPT = `
 Você extrai dados estruturados de currículos.
 
@@ -13,51 +26,24 @@ Regras:
 - Não duplique itens
 - Retorne apenas JSON válido
 
-Estrutura:
-{
-  "contact": {
-    "name": "string",
-    "email": "string",
-    "phone": "string",
-    "linkedin": "string",
-    "location": "string",
-    "portfolio": "string"
-  },
-  "summary": "string",
-  "experiences": [
-    {
-      "title": "string",
-      "company": "string",
-      "period": "string",
-      "description": "string",
-      "achievements": ["string"]
-    }
-  ],
-  "skills": ["string"],
-  "tools": ["string"],
-  "education": [
-    {
-      "degree": "string",
-      "institution": "string",
-      "period": "string",
-      "field": "string"
-    }
-  ],
-  "languages": [
-    {
-      "name": "string",
-      "level": "string"
-    }
-  ],
-  "projects": [
-    {
-      "name": "string",
-      "description": "string",
-      "technologies": ["string"]
-    }
-  ],
-  "certifications": ["string"]
-}
+Estrutura:${RESUME_JSON_SCHEMA}
+`;
+
+const FULL_EXTRACTION_SYSTEM_PROMPT = `
+Você é um extrator de currículos de alta precisão. Converta o texto bruto de um currículo em JSON estruturado COMPLETO.
+
+REGRAS OBRIGATÓRIAS — siga todas sem exceção:
+1. Extraia TODOS os empregos/cargos — se há 10 empresas, "experiences" DEVE ter 10 objetos. Nunca omita.
+2. Para cada experiência: preencha "description" com responsabilidades/atividades do cargo (copie do texto).
+3. Para cada experiência: preencha "achievements" com resultados/conquistas/métricas mencionadas.
+4. Se não houver achievements explícitos, "achievements" pode ser array vazio [].
+5. "description" NUNCA deve ficar vazio se o texto menciona atividades daquele cargo.
+6. Extraia TODAS as formações/cursos em "education".
+7. Extraia TODAS as habilidades em "skills" e ferramentas em "tools".
+8. Copie período exatamente como no texto (ex: "Jan 2020 – Dez 2022", "2019 – atual").
+9. Retorne APENAS JSON válido, sem texto extra.
+
+Estrutura obrigatória:${RESUME_JSON_SCHEMA}
 `;
 
 function safeJsonParse<T>(value: string, label: string): T {
@@ -175,7 +161,15 @@ function normalizeResume(result: ResumeStructured): ResumeStructured {
   };
 }
 
-export async function parseResume(resumeText: string): Promise<ResumeStructured> {
+interface ParseResumeOptions {
+  /** Use quality model and higher token budget — for full-profile imports with many entries. */
+  fullExtraction?: boolean;
+}
+
+export async function parseResume(
+  resumeText: string,
+  opts: ParseResumeOptions = {}
+): Promise<ResumeStructured> {
   const cleanedText = clipText(
     resumeText
       .replace(/\r\n/g, '\n')
@@ -186,23 +180,36 @@ export async function parseResume(resumeText: string): Promise<ResumeStructured>
     12000
   );
 
-  const userPrompt = [
-    'Extraia o currículo abaixo para JSON estruturado.',
-    'Use apenas o que estiver explícito.',
-    'Não invente informações.',
-    'Para contact.linkedin: extraia a URL ou username do LinkedIn se presente.',
-    'Para contact.location: extraia cidade e estado (ex: "São Paulo, SP").',
-    '',
-    `curriculo=${JSON.stringify(cleanedText)}`,
-  ].join('\n');
+  const userPrompt = opts.fullExtraction
+    ? [
+        'Extraia TODOS os dados do currículo abaixo para JSON estruturado.',
+        'IMPORTANTE: inclua todas as experiências, formações e skills — não omita nenhuma.',
+        'Para contact.linkedin: extraia a URL ou username do LinkedIn se presente.',
+        'Para contact.location: extraia cidade e estado (ex: "São Paulo, SP").',
+        '',
+        `CURRICULO:\n${cleanedText}`,
+      ].join('\n')
+    : [
+        'Extraia o currículo abaixo para JSON estruturado.',
+        'Use apenas o que estiver explícito.',
+        'Não invente informações.',
+        'Para contact.linkedin: extraia a URL ou username do LinkedIn se presente.',
+        'Para contact.location: extraia cidade e estado (ex: "São Paulo, SP").',
+        '',
+        `curriculo=${JSON.stringify(cleanedText)}`,
+      ].join('\n');
 
-  const result = await callOpenAI(SYSTEM_PROMPT, userPrompt, {
-    preset: 'fast',
+  const systemPrompt = opts.fullExtraction ? FULL_EXTRACTION_SYSTEM_PROMPT : SYSTEM_PROMPT;
+
+  const result = await callOpenAI(systemPrompt, userPrompt, {
+    // Full extraction (import): use quality model with large token budget
+    // Fast parse (analyze fallback): use fast model with smaller budget
+    preset: opts.fullExtraction ? 'quality' : 'fast',
     fallbackPreset: 'quality',
     requireJson: true,
     temperature: 0.1,
-    maxTokens: 2200,
-    timeoutMs: 30000,
+    maxTokens: opts.fullExtraction ? 8000 : 2200,
+    timeoutMs: opts.fullExtraction ? 60000 : 30000,
   });
 
   return normalizeResume(

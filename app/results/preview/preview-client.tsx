@@ -64,12 +64,13 @@ export default function ResultsPreviewPage() {
 
   return (
     <ResultsView
-      score={analysisResult.score}
+      score={data.atsScore?.total ?? analysisResult.score}
       jobStructured={data.jobStructured}
       analysis={analysisResult}
       optimizedResume={optimizedResume}
       salary={salarySuggestion}
       gupySuggestions={gupySuggestion}
+      atsScore={data.atsScore}
       createdAt={new Date().toISOString()}
     />
   );

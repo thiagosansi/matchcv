@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { OptimizedResume } from '@/types';
-import { Copy, Check, Star } from 'lucide-react';
+import { Copy, Check, Star, MapPin, Phone, Linkedin } from 'lucide-react';
 
 interface OptimizedResumeCardProps {
   resume: OptimizedResume;
@@ -77,6 +77,8 @@ export function OptimizedResumeCard({ resume }: OptimizedResumeCardProps) {
   const hasExperiences = Boolean(resume.experiences?.length);
   const hasSkills = Boolean(resume.skills?.length);
   const hasEducation = Boolean(resume.education?.length);
+  const hasLanguages = Boolean(resume.languages?.length);
+  const hasCertifications = Boolean(resume.certifications?.length);
 
   return (
     <Card className="border-primary/30 shadow-sm ring-1 ring-primary/10">
@@ -108,6 +110,32 @@ export function OptimizedResumeCard({ resume }: OptimizedResumeCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-5">
+        {resume.contact?.name && (
+          <div className="pb-3 border-b border-border">
+            <p className="text-base font-bold text-foreground">{resume.contact.name}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+              {resume.contact.location && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="w-3 h-3" />
+                  {resume.contact.location}
+                </span>
+              )}
+              {resume.contact.phone && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Phone className="w-3 h-3" />
+                  {resume.contact.phone}
+                </span>
+              )}
+              {resume.contact.linkedin && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Linkedin className="w-3 h-3" />
+                  {resume.contact.linkedin}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {hasSummary && (
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
@@ -193,6 +221,36 @@ export function OptimizedResumeCard({ resume }: OptimizedResumeCardProps) {
             </h4>
             <ul className="space-y-1">
               {resume.education.map((item, i) => (
+                <li key={i} className="text-sm text-foreground">
+                  • {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {hasLanguages && (
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+              Idiomas
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {resume.languages!.map((lang, i) => (
+                <Badge key={i} variant="outline" className="text-xs font-normal">
+                  {lang}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasCertifications && (
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+              Certificações
+            </h4>
+            <ul className="space-y-1">
+              {resume.certifications!.map((item, i) => (
                 <li key={i} className="text-sm text-foreground">
                   • {item}
                 </li>

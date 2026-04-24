@@ -81,30 +81,45 @@ Estrutura:
 `;
 
 const OPTIMIZE_SYSTEM_PROMPT = `
-Você gera um "Currículo aderente à vaga" usando SOMENTE dados reais do currículo.
+Você é um especialista em currículos ATS para o mercado brasileiro.
+Gere um currículo completamente aderente à vaga usando APENAS dados reais do candidato.
 
-Regras obrigatórias:
-- Responda em português-BR
-- Não invente cargo, empresa, período, ferramenta, projeto, certificação, idioma ou resultado numérico
-- Não troque o cargo real do candidato pelo cargo da vaga
-- Use os nomes de empresa, cargo e período EXATAMENTE como aparecem no curriculo_original
-- Use palavras-chave da vaga apenas quando houver evidência real no currículo
-- O texto final deve parecer currículo real de um humano, não texto genérico de IA
+REGRAS NÃO NEGOCIÁVEIS:
+- Use SOMENTE dados do currículo — nunca invente cargo, empresa, período, ferramenta, resultado numérico ou certificação
+- Mantenha cargo, empresa e período EXATAMENTE como no curriculo_original
+- Não substitua o cargo real do candidato pelo cargo da vaga
 
-Escrita dos bullets de experiência:
-- Formato preferido: verbo de ação no passado + contexto específico + impacto/resultado quando mencionado no original
-- Use terminologia da vaga quando a experiência real confirmar a habilidade
-- Seja específico: cite ferramentas, metodologias, escala e resultados reais do currículo
-- Evite frases vagas como "atuei em", "contribuí para", "responsável por" sem detalhe
+ESTRATÉGIA ATS — siga esta ordem:
+1. ESPELHE a linguagem da vaga: use os mesmos termos e verbos que o recrutador usou no JD
+2. Selecione as 6-8 experiências com MAIOR aderência à vaga (não force todas — qualidade > volume)
+3. Priorize experiências com: mesmo setor, mesmo tipo de produto, mesmas metodologias da vaga
+4. Para cada experiência selecionada: 3-5 bullets ricos
+5. Bullet format: [verbo de ação no passado] + [contexto específico] + [impacto/escala quando disponível]
+6. Injete 1-2 keywords da vaga por bullet onde a experiência real confirmar o conhecimento
 
-Cobertura obrigatória:
-- Inclua TODAS as experiências presentes no currículo, com 3-4 bullets cada
-- Inclua todos os idiomas presentes no currículo (não invente níveis)
-- Inclua todas as certificações presentes no currículo
-- Se houver habilidades: inclua todas as relevantes para a vaga
-- Se houver formação: inclua formação completa
+RESUMO PROFISSIONAL:
+- 3-5 linhas direcionadas ESPECIFICAMENTE a esta vaga e empresa
+- Use o título exato da vaga ao se posicionar (ex: "Product Manager com X anos...")
+- Cite anos de experiência, setor/segmento e 2-3 diferenciais mais relevantes para a vaga
+- Inclua keywords críticas da vaga de forma orgânica
 
-Estrutura:
+DESTAQUES DE ADERÊNCIA (highlights):
+- 4-6 pontos que conectam diretamente o candidato aos requisitos da vaga
+- Seja específico: "X anos em produtos [segmento da vaga], conforme requerido para [cargo]"
+- Cite requisitos explícitos da vaga que o candidato claramente atende com evidência real
+
+SKILLS:
+- Liste PRIMEIRO as skills que aparecem na descrição da vaga (por ordem de relevância)
+- Depois as demais skills relevantes do perfil do candidato
+
+FORMAÇÃO:
+- Inclua: grau + curso + instituição + período para cada item
+
+IDIOMAS E CERTIFICAÇÕES:
+- Inclua todos os idiomas do currículo (sem inventar níveis)
+- Inclua todas as certificações relevantes para a vaga
+
+Retorne APENAS JSON válido com esta estrutura:
 {
   "summary": "string",
   "experiences": [
@@ -112,12 +127,12 @@ Estrutura:
       "title": "cargo exato do currículo",
       "company": "empresa exata do currículo",
       "period": "período exato do currículo",
-      "bullets": ["string", "string", "string"]
+      "bullets": ["string (3-5 bullets ricos por experiência)"]
     }
   ],
   "skills": ["string"],
   "education": ["string"],
-  "highlights": ["string", "string", "string"],
+  "highlights": ["string (4-6 destaques de aderência)"],
   "languages": ["string"],
   "certifications": ["string"]
 }
@@ -252,8 +267,8 @@ function compactResumeForOptimization(resume: ResumeStructured) {
       title: exp.title || '',
       company: exp.company || '',
       period: exp.period || '',
-      description: (exp.description || '').slice(0, 300),
-      achievements: (exp.achievements || []).slice(0, 8),
+      description: (exp.description || '').slice(0, 600),
+      achievements: (exp.achievements || []).slice(0, 12),
     })),
     skills: (resume.skills || []).slice(0, 30),
     tools: (resume.tools || []).slice(0, 25),
@@ -407,7 +422,7 @@ export async function optimizeResume(
   const userPrompt = [
     'Gere um currículo aderente à vaga usando apenas dados reais do currículo.',
     'Use o curriculo_original como fonte de verdade para nomes de empresa, cargo, período e realizações.',
-    'Inclua TODAS as experiências do currículo — não omita nenhuma.',
+    'Selecione as 6-8 experiências com MAIOR aderência à vaga — qualidade > volume.',
     missingKeywordsNote,
     '',
     rawClip ? `curriculo_original=${JSON.stringify(rawClip)}` : '',
@@ -423,8 +438,8 @@ export async function optimizeResume(
     fallbackPreset: 'fast',
     requireJson: true,
     temperature: 0.2,
-    maxTokens: 4500,
-    timeoutMs: 60000,
+    maxTokens: 8000,
+    timeoutMs: 90000,
   });
 
   const normalized = normalizeOptimizedResume(

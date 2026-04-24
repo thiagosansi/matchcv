@@ -184,6 +184,7 @@ export interface DbJobAnalysis {
   optimized_resume_json?: OptimizedResume | null;
   executive_summary: string;
   ats_keywords: string[];
+  ats_score_json?: ATSScoreResult | null;
   is_gupy: boolean;
   status: string;
   created_at: string;
@@ -212,12 +213,93 @@ export interface DbSalarySuggestion {
   created_at: string;
 }
 
+// ─── Structured Profile ───────────────────────────────────────────────────────
+
+export interface WorkExperience {
+  id: string;
+  user_id: string;
+  company: string;
+  title: string;
+  location: string;
+  start_date: string | null;
+  end_date: string | null;
+  is_current: boolean;
+  description: string;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EducationEntry {
+  id: string;
+  user_id: string;
+  institution: string;
+  degree: string;
+  field: string;
+  start_date: string | null;
+  end_date: string | null;
+  is_current: boolean;
+  description: string;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SkillCategory = 'technical' | 'tool' | 'language' | 'certification';
+
+export interface ProfileSkill {
+  id: string;
+  user_id: string;
+  name: string;
+  category: SkillCategory;
+  proficiency: string;
+  display_order: number;
+  created_at: string;
+}
+
+export interface ProfileContactInfo {
+  linkedin?: string;
+  phone?: string;
+  location?: string;
+  website?: string;
+  github?: string;
+}
+
+export interface FullProfile {
+  full_name: string;
+  professional_objectives: string[];
+  base_summary: string;
+  contact_info: ProfileContactInfo;
+  work_experiences: WorkExperience[];
+  education: EducationEntry[];
+  skills: ProfileSkill[];
+}
+
+// ─── ATS Score ────────────────────────────────────────────────────────────────
+
+export interface ATSScoreDimension {
+  key: 'keywords' | 'skills' | 'experience' | 'format' | 'completeness';
+  label: string;
+  score: number;      // 0-100
+  weight: number;     // e.g. 0.40
+  note: string;
+}
+
+export interface ATSScoreResult {
+  total: number;
+  dimensions: ATSScoreDimension[];
+  foundKeywords: string[];
+  missingKeywords: string[];
+  passesThreshold: boolean;  // score >= 80
+}
+
 // ─── API response ─────────────────────────────────────────────────────────────
 
 export interface AnalyzeApiResponse {
   id: string;
   jobStructured: JobStructured;
   analysis: AnalysisResult;
+  atsScore: ATSScoreResult;
   optimizedResume: OptimizedResume;
   salary: SalarySuggestion;
   gupySuggestions: GupySuggestion | null;
