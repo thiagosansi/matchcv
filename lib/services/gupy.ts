@@ -81,8 +81,8 @@ export async function generateGupyTexts(
   ].join('\n');
 
   const result = await callOpenAI(SYSTEM_PROMPT, userPrompt, {
-    preset: 'fast',
-    fallbackPreset: 'quality',
+    preset: 'quality',
+    fallbackPreset: 'fast',
     requireJson: true,
     temperature: 0.35,
     maxTokens: 1000,

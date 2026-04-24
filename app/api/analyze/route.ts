@@ -92,12 +92,21 @@ export async function POST(request: NextRequest) {
     // Hybrid ATS score: deterministic rule-based engine (complements AI score)
     const atsScore = calculateATSScore(resumeStructured, jobStructured);
 
-    const [optimized, gupySuggestions] = await Promise.all([
-      optimizeResume(resumeStructured, jobStructured, analysis, effectiveResumeText),
-      jobStructured.isGupy
-        ? generateGupyTexts(resumeStructured, jobStructured)
-        : Promise.resolve(null),
-    ]);
+    // Gupy generation runs after optimization to avoid racing for the same
+    // Groq quota window. Also wrapped in try/catch so a Gupy failure never
+    // blocks the rest of the analysis from completing.
+    const optimized = await optimizeResume(
+      resumeStructured, jobStructured, analysis, effectiveResumeText
+    );
+
+    let gupySuggestions = null;
+    if (jobStructured.isGupy) {
+      try {
+        gupySuggestions = await generateGupyTexts(resumeStructured, jobStructured);
+      } catch (err) {
+        console.error('Gupy text generation failed (non-blocking):', err);
+      }
+    }
 
     const db = createServerClient();
 
