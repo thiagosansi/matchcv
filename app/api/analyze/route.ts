@@ -18,7 +18,7 @@ function parseMoneyToNumber(val: string): number {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { resumeText, jobText, jobUrl, userId, useProfile } = body;
+    const { resumeText, jobText, jobUrl, userId, useProfile, forceGupy } = body;
 
     if (!userId || typeof userId !== 'string' || userId.length < 10) {
       return NextResponse.json({ error: 'Usuário inválido.' }, { status: 400 });
@@ -72,12 +72,17 @@ export async function POST(request: NextRequest) {
 
     const effectiveResumeText = (resumeText ?? '').trim();
 
-    const [resumeStructured, jobStructured] = await Promise.all([
+    const [resumeStructured, jobStructuredRaw] = await Promise.all([
       hasStructuredProfile
         ? Promise.resolve(fullProfileToResumeStructured(fullProfile!))
         : parseResume(effectiveResumeText),
       parseJob(jobText.trim(), platform),
     ]);
+
+    // forceGupy: user explicitly indicated this is a Gupy job (text mode, no URL)
+    const jobStructured = forceGupy
+      ? { ...jobStructuredRaw, isGupy: true }
+      : jobStructuredRaw;
 
     const [analysis, salary] = await Promise.all([
       analyzeCompatibility(resumeStructured, jobStructured, effectiveResumeText),

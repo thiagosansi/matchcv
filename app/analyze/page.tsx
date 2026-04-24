@@ -59,6 +59,7 @@ export default function AnalyzePage() {
   const [jobText, setJobText] = useState('');
   const [jobUrl, setJobUrl] = useState('');
   const [jobTab, setJobTab] = useState('text');
+  const [isGupyJob, setIsGupyJob] = useState(false);
   const [urlLoading, setUrlLoading] = useState(false);
   const [urlError, setUrlError] = useState('');
   const [urlInstruction, setUrlInstruction] = useState('');
@@ -271,6 +272,7 @@ export default function AnalyzePage() {
           jobUrl,
           userId: user.id,
           useProfile: usingProfile,
+          forceGupy: isGupyJob,
         }),
       });
 
@@ -608,6 +610,23 @@ export default function AnalyzePage() {
                     <span className="text-yellow-600">{50 - jobText.length} a mais para mínimo</span>
                   )}
                 </div>
+                <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
+                  <input
+                    type="checkbox"
+                    checked={isGupyJob}
+                    onChange={(e) => setIsGupyJob(e.target.checked)}
+                    disabled={loading}
+                    className="w-3.5 h-3.5 accent-primary"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    Esta vaga é da <span className="font-medium text-foreground">Gupy</span>
+                    {isGupyJob && (
+                      <span className="ml-1.5 text-primary font-medium">
+                        → texto de candidatura será gerado
+                      </span>
+                    )}
+                  </span>
+                </label>
               </TabsContent>
 
               <TabsContent value="url" className="mt-3 space-y-3">
