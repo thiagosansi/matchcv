@@ -84,7 +84,8 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: 'Erro ao criar formação.' }, { status: 500 });
+    console.error('education_entries insert error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json({ education: data }, { status: 201 });

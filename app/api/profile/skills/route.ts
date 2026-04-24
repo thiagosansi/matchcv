@@ -82,7 +82,8 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: 'Erro ao criar skill.' }, { status: 500 });
+    console.error('profile_skills insert error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json({ skill: data }, { status: 201 });

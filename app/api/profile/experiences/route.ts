@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: 'Erro ao criar experiência.' }, { status: 500 });
+    console.error('work_experiences insert error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json({ experience: data }, { status: 201 });
