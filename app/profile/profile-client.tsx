@@ -453,6 +453,18 @@ export default function ProfilePage() {
     setImportSaving(true);
     setImportError('');
 
+    const postJson = async (url: string, body: unknown) => {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(`${url}: ${err.error ?? res.status}`);
+      }
+    };
+
     try {
       // Save basic info (name, summary, contact) in parallel
       const newName = importPreview.contact.name || fullName;
@@ -461,7 +473,7 @@ export default function ProfilePage() {
       const newPhone = importPreview.contact.phone || phone;
       const newLocation = importPreview.contact.location || location;
 
-      await Promise.all([
+      const [profileRes, contactRes] = await Promise.all([
         supabase
           .from('profiles')
           .update({ full_name: newName, base_summary: newSummary })
@@ -469,13 +481,15 @@ export default function ProfilePage() {
         fetch('/api/profile/contact', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            linkedin: newLinkedin,
-            phone: newPhone,
-            location: newLocation,
-          }),
+          body: JSON.stringify({ linkedin: newLinkedin, phone: newPhone, location: newLocation }),
         }),
       ]);
+
+      if (profileRes.error) throw new Error(`Perfil: ${profileRes.error.message}`);
+      if (!contactRes.ok) {
+        const err = await contactRes.json().catch(() => ({}));
+        throw new Error(`Contato: ${err.error ?? contactRes.status}`);
+      }
 
       // Update form states to reflect imported data
       if (newName) setFullName(newName);
@@ -486,29 +500,17 @@ export default function ProfilePage() {
 
       // Save experiences sequentially to preserve order
       for (const exp of importPreview.experiences) {
-        await fetch('/api/profile/experiences', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(exp),
-        });
+        await postJson('/api/profile/experiences', exp);
       }
 
       // Save education
       for (const edu of importPreview.education) {
-        await fetch('/api/profile/education', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(edu),
-        });
+        await postJson('/api/profile/education', edu);
       }
 
       // Save skills
       for (const skill of importPreview.skills) {
-        await fetch('/api/profile/skills', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(skill),
-        });
+        await postJson('/api/profile/skills', skill);
       }
 
       // Refresh all sections
