@@ -240,8 +240,13 @@ export default function ProfilePage() {
 
     setSavingBasic(false);
 
-    if (profileRes.error || !contactRes.ok) {
-      setBasicError('Erro ao salvar. Tente novamente.');
+    if (profileRes.error) {
+      setBasicError(`Erro ao salvar perfil: ${profileRes.error.message}`);
+      return;
+    }
+    if (!contactRes.ok) {
+      const body = await contactRes.json().catch(() => ({}));
+      setBasicError(`Erro ao salvar contato: ${body.error ?? contactRes.status}`);
       return;
     }
 
