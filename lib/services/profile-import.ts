@@ -35,6 +35,7 @@ export interface ImportedContact {
 
 export interface ProfileImportPreview {
   contact: ImportedContact;
+  summary: string;
   experiences: ImportedExperience[];
   education: ImportedEducation[];
   skills: ImportedSkill[];
@@ -152,6 +153,7 @@ export async function extractProfileFromText(rawText: string): Promise<ProfileIm
       linkedin: parsed.contact.linkedin,
       location: parsed.contact.location,
     },
+    summary: parsed.summary,
     experiences,
     education,
     skills,

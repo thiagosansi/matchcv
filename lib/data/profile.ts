@@ -13,7 +13,7 @@ export async function getFullProfile(userId: string): Promise<FullProfile | null
   const [profileRes, experiencesRes, educationRes, skillsRes] = await Promise.all([
     db
       .from('profiles')
-      .select('full_name, professional_goal, base_summary, contact_info')
+      .select('full_name, professional_objectives, base_summary, contact_info')
       .eq('id', userId)
       .maybeSingle(),
 
@@ -44,7 +44,7 @@ export async function getFullProfile(userId: string): Promise<FullProfile | null
 
   return {
     full_name: profileRes.data.full_name ?? '',
-    professional_goal: profileRes.data.professional_goal ?? '',
+    professional_objectives: (profileRes.data.professional_objectives as string[]) ?? [],
     base_summary: profileRes.data.base_summary ?? '',
     contact_info: (profileRes.data.contact_info as ProfileContactInfo) ?? {},
     work_experiences: (experiencesRes.data ?? []) as WorkExperience[],
@@ -83,7 +83,7 @@ export function fullProfileToResumeStructured(profile: FullProfile) {
       location: profile.contact_info.location ?? '',
       portfolio: profile.contact_info.website ?? '',
     },
-    summary: profile.base_summary || profile.professional_goal,
+    summary: profile.base_summary || profile.professional_objectives.join(' | '),
     experiences: profile.work_experiences.map((exp) => ({
       title: exp.title,
       company: exp.company,

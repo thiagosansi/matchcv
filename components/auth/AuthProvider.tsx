@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
+import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 type Profile = {
@@ -10,7 +10,7 @@ type Profile = {
   full_name: string;
   role: 'user' | 'admin';
   status: 'active' | 'inactive' | 'suspended';
-  professional_goal?: string;
+  professional_objectives?: string[];
   base_summary?: string;
 };
 
@@ -77,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, nextSession: Session | null) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       await loadProfile(nextSession?.user?.id ?? null);

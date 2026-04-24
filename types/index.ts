@@ -267,7 +267,7 @@ export interface ProfileContactInfo {
 
 export interface FullProfile {
   full_name: string;
-  professional_goal: string;
+  professional_objectives: string[];
   base_summary: string;
   contact_info: ProfileContactInfo;
   work_experiences: WorkExperience[];

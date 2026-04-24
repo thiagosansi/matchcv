@@ -105,7 +105,8 @@ export default function ProfilePage() {
 
   // Basic info state
   const [fullName, setFullName] = useState('');
-  const [professionalGoal, setProfessionalGoal] = useState('');
+  const [objectives, setObjectives] = useState<string[]>([]);
+  const [customObjective, setCustomObjective] = useState('');
   const [baseSummary, setBaseSummary] = useState('');
   const [linkedin, setLinkedin] = useState('');
   const [phone, setPhone] = useState('');
@@ -156,7 +157,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name ?? '');
-      setProfessionalGoal(profile.professional_goal ?? '');
+      setObjectives(profile.professional_objectives ?? []);
       setBaseSummary(profile.base_summary ?? '');
     }
   }, [profile]);
@@ -226,7 +227,7 @@ export default function ProfilePage() {
         .from('profiles')
         .update({
           full_name: fullName.trim(),
-          professional_goal: professionalGoal.trim(),
+          professional_objectives: objectives,
           base_summary: baseSummary.trim(),
         })
         .eq('id', user.id),
@@ -448,11 +449,41 @@ export default function ProfilePage() {
   };
 
   const handleConfirmImport = async () => {
-    if (!importPreview) return;
+    if (!importPreview || !user) return;
     setImportSaving(true);
     setImportError('');
 
     try {
+      // Save basic info (name, summary, contact) in parallel
+      const newName = importPreview.contact.name || fullName;
+      const newSummary = importPreview.summary || baseSummary;
+      const newLinkedin = importPreview.contact.linkedin || linkedin;
+      const newPhone = importPreview.contact.phone || phone;
+      const newLocation = importPreview.contact.location || location;
+
+      await Promise.all([
+        supabase
+          .from('profiles')
+          .update({ full_name: newName, base_summary: newSummary })
+          .eq('id', user.id),
+        fetch('/api/profile/contact', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            linkedin: newLinkedin,
+            phone: newPhone,
+            location: newLocation,
+          }),
+        }),
+      ]);
+
+      // Update form states to reflect imported data
+      if (newName) setFullName(newName);
+      if (newSummary) setBaseSummary(newSummary);
+      if (newLinkedin) setLinkedin(newLinkedin);
+      if (newPhone) setPhone(newPhone);
+      if (newLocation) setLocation(newLocation);
+
       // Save experiences sequentially to preserve order
       for (const exp of importPreview.experiences) {
         await fetch('/api/profile/experiences', {
@@ -481,12 +512,12 @@ export default function ProfilePage() {
       }
 
       // Refresh all sections
-      await Promise.all([loadExperiences(), loadEducation(), loadSkills()]);
+      await Promise.all([loadExperiences(), loadEducation(), loadSkills(), refreshProfile()]);
 
       setImportPreview(null);
       setImportText('');
-      setImportSuccess('Perfil importado com sucesso!');
-      setTimeout(() => setImportSuccess(''), 4000);
+      setImportSuccess('Perfil importado com sucesso! Revise as informações preenchidas.');
+      setTimeout(() => setImportSuccess(''), 6000);
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Falha ao salvar dados importados');
     } finally {
@@ -506,7 +537,7 @@ export default function ProfilePage() {
     experiences.length > 0,
     education.length > 0,
     skills.length > 0,
-    Boolean(fullName || professionalGoal),
+    Boolean(fullName || objectives.length > 0),
   ].filter(Boolean).length;
 
   return (
@@ -536,7 +567,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <User className="w-4 h-4 text-primary" />
                 Informações básicas
-                {(fullName || professionalGoal) && (
+                {(fullName || objectives.length > 0) && (
                   <CheckCircle className="w-3.5 h-3.5 text-green-500 ml-1" />
                 )}
               </div>
@@ -558,14 +589,98 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="goal">Objetivo profissional</Label>
-                <Input
-                  id="goal"
-                  value={professionalGoal}
-                  onChange={(e) => setProfessionalGoal(e.target.value)}
-                  placeholder="Ex: Engenheiro de Software sênior focado em sistemas distribuídos"
-                />
+              <div className="space-y-2">
+                <Label>Objetivos profissionais</Label>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Selecione um ou mais cargos que está buscando. Cada análise será otimizada para o cargo selecionado.
+                </p>
+
+                {/* Suggestion chips — toggle add/remove */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    'Engenheiro(a) de Software Sênior',
+                    'Product Manager',
+                    'Product Owner',
+                    'Analista de Produto',
+                    'Tech Lead',
+                    'Engenheiro(a) de Dados',
+                  ].map((suggestion) => {
+                    const selected = objectives.includes(suggestion);
+                    return (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        onClick={() =>
+                          setObjectives((prev) =>
+                            selected
+                              ? prev.filter((o) => o !== suggestion)
+                              : [...prev, suggestion]
+                          )
+                        }
+                        className={
+                          selected
+                            ? 'text-xs px-2.5 py-1 rounded-full border font-medium transition-colors bg-primary text-primary-foreground border-primary'
+                            : 'text-xs px-2.5 py-1 rounded-full border border-border bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors'
+                        }
+                      >
+                        {selected ? '✓ ' : '+ '}{suggestion}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom objective input */}
+                <div className="flex gap-2">
+                  <Input
+                    value={customObjective}
+                    onChange={(e) => setCustomObjective(e.target.value)}
+                    placeholder="Outro cargo ou objetivo..."
+                    className="h-8 text-sm"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && customObjective.trim()) {
+                        e.preventDefault();
+                        if (!objectives.includes(customObjective.trim())) {
+                          setObjectives((prev) => [...prev, customObjective.trim()]);
+                        }
+                        setCustomObjective('');
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-3"
+                    disabled={!customObjective.trim() || objectives.includes(customObjective.trim())}
+                    onClick={() => {
+                      if (customObjective.trim() && !objectives.includes(customObjective.trim())) {
+                        setObjectives((prev) => [...prev, customObjective.trim()]);
+                        setCustomObjective('');
+                      }
+                    }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+
+                {/* Selected objectives */}
+                {objectives.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {objectives.map((obj) => (
+                      <Badge key={obj} variant="secondary" className="gap-1 pr-1.5 font-normal">
+                        {obj}
+                        <button
+                          type="button"
+                          onClick={() => setObjectives((prev) => prev.filter((o) => o !== obj))}
+                          className="hover:text-destructive transition-colors"
+                          aria-label={`Remover ${obj}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5">
