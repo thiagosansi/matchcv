@@ -1230,45 +1230,61 @@ export default function ProfilePage() {
 
               {importPreview && (
                 <div className="space-y-4">
+                  {/* Contact info extracted */}
+                  {importPreview.contact.name && (
+                    <div className="rounded-lg border bg-blue-50 border-blue-200 p-3 text-xs space-y-0.5">
+                      <p className="font-semibold text-blue-800 mb-1">Informações básicas extraídas</p>
+                      {importPreview.contact.name && <p className="text-blue-700">Nome: {importPreview.contact.name}</p>}
+                      {importPreview.summary && <p className="text-blue-700 line-clamp-2">Resumo: {importPreview.summary}</p>}
+                      {importPreview.contact.linkedin && <p className="text-blue-700">LinkedIn: {importPreview.contact.linkedin}</p>}
+                      {importPreview.contact.location && <p className="text-blue-700">Localização: {importPreview.contact.location}</p>}
+                    </div>
+                  )}
+
                   <div className="rounded-lg border bg-muted/30 p-3 space-y-3 text-sm">
                     <p className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
-                      Prévia extraída — revise antes de confirmar
+                      Dados estruturados extraídos
                     </p>
 
-                    {importPreview.experiences.length > 0 && (
-                      <div>
-                        <p className="font-medium mb-1 flex items-center gap-1">
-                          <Briefcase className="w-3.5 h-3.5" />
-                          {importPreview.experiences.length} experiência(s)
-                        </p>
+                    {/* Experiences — always show count */}
+                    <div>
+                      <p className={`font-medium mb-1 flex items-center gap-1 ${importPreview.experiences.length === 0 ? 'text-amber-600' : ''}`}>
+                        <Briefcase className="w-3.5 h-3.5" />
+                        {importPreview.experiences.length} experiência(s) encontrada(s)
+                      </p>
+                      {importPreview.experiences.length > 0 ? (
                         <ul className="space-y-1 pl-5 text-muted-foreground text-xs list-disc">
                           {importPreview.experiences.map((exp, i) => (
                             <li key={i}>{exp.title} — {exp.company}</li>
                           ))}
                         </ul>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-xs text-amber-600 pl-5">Nenhuma experiência identificada no texto.</p>
+                      )}
+                    </div>
 
-                    {importPreview.education.length > 0 && (
-                      <div>
-                        <p className="font-medium mb-1 flex items-center gap-1">
-                          <GraduationCap className="w-3.5 h-3.5" />
-                          {importPreview.education.length} formação(ões)
-                        </p>
+                    {/* Education — always show count */}
+                    <div>
+                      <p className={`font-medium mb-1 flex items-center gap-1 ${importPreview.education.length === 0 ? 'text-amber-600' : ''}`}>
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        {importPreview.education.length} formação(ões) encontrada(s)
+                      </p>
+                      {importPreview.education.length > 0 && (
                         <ul className="space-y-1 pl-5 text-muted-foreground text-xs list-disc">
                           {importPreview.education.map((edu, i) => (
                             <li key={i}>{edu.degree} — {edu.institution}</li>
                           ))}
                         </ul>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
-                    {importPreview.skills.length > 0 && (
-                      <div>
-                        <p className="font-medium mb-1 flex items-center gap-1">
-                          <Zap className="w-3.5 h-3.5" />
-                          {importPreview.skills.length} skill(s)
-                        </p>
+                    {/* Skills — always show count */}
+                    <div>
+                      <p className={`font-medium mb-1 flex items-center gap-1 ${importPreview.skills.length === 0 ? 'text-amber-600' : ''}`}>
+                        <Zap className="w-3.5 h-3.5" />
+                        {importPreview.skills.length} skill(s) encontrada(s)
+                      </p>
+                      {importPreview.skills.length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {importPreview.skills.slice(0, 12).map((skill, i) => (
                             <Badge key={i} variant="outline" className="text-xs px-2 py-0.5 font-normal">
@@ -1281,7 +1297,13 @@ export default function ProfilePage() {
                             </Badge>
                           )}
                         </div>
-                      </div>
+                      )}
+                    </div>
+
+                    {importPreview.experiences.length === 0 && importPreview.education.length === 0 && importPreview.skills.length === 0 && (
+                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                        A IA não conseguiu identificar dados estruturados. Verifique se o texto colado é um currículo completo e tente novamente.
+                      </p>
                     )}
                   </div>
 
@@ -1310,7 +1332,7 @@ export default function ProfilePage() {
                       disabled={importSaving}
                     >
                       <X className="w-3.5 h-3.5 mr-1" />
-                      Cancelar
+                      Tentar novamente
                     </Button>
                   </div>
                 </div>

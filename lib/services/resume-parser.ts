@@ -1,6 +1,19 @@
 import { callOpenAI } from './openai';
 import type { ResumeStructured, ContactInfo } from '@/types';
 
+const RESUME_JSON_SCHEMA = `
+{
+  "contact": { "name": "string", "email": "string", "phone": "string", "linkedin": "string", "location": "string", "portfolio": "string" },
+  "summary": "string",
+  "experiences": [{ "title": "string", "company": "string", "period": "string", "description": "string", "achievements": ["string"] }],
+  "skills": ["string"],
+  "tools": ["string"],
+  "education": [{ "degree": "string", "institution": "string", "period": "string", "field": "string" }],
+  "languages": [{ "name": "string", "level": "string" }],
+  "projects": [{ "name": "string", "description": "string", "technologies": ["string"] }],
+  "certifications": ["string"]
+}`;
+
 const SYSTEM_PROMPT = `
 Você extrai dados estruturados de currículos.
 
@@ -13,51 +26,22 @@ Regras:
 - Não duplique itens
 - Retorne apenas JSON válido
 
-Estrutura:
-{
-  "contact": {
-    "name": "string",
-    "email": "string",
-    "phone": "string",
-    "linkedin": "string",
-    "location": "string",
-    "portfolio": "string"
-  },
-  "summary": "string",
-  "experiences": [
-    {
-      "title": "string",
-      "company": "string",
-      "period": "string",
-      "description": "string",
-      "achievements": ["string"]
-    }
-  ],
-  "skills": ["string"],
-  "tools": ["string"],
-  "education": [
-    {
-      "degree": "string",
-      "institution": "string",
-      "period": "string",
-      "field": "string"
-    }
-  ],
-  "languages": [
-    {
-      "name": "string",
-      "level": "string"
-    }
-  ],
-  "projects": [
-    {
-      "name": "string",
-      "description": "string",
-      "technologies": ["string"]
-    }
-  ],
-  "certifications": ["string"]
-}
+Estrutura:${RESUME_JSON_SCHEMA}
+`;
+
+const FULL_EXTRACTION_SYSTEM_PROMPT = `
+Você é um extrator de currículos de alta precisão. Converta o texto bruto de um currículo em JSON estruturado COMPLETO.
+
+REGRAS OBRIGATÓRIAS — siga todas:
+1. Extraia TODOS os empregos/cargos presentes — se há 10 empresas no texto, "experiences" deve ter 10 objetos
+2. Extraia TODAS as formações/cursos/MBAs presentes em "education"
+3. Extraia TODAS as habilidades técnicas em "skills" e ferramentas em "tools"
+4. Copie período exatamente como está no texto (ex: "Jan 2020 – Dez 2022", "2019 – atual")
+5. Inclua descrição de responsabilidades em "description"
+6. Liste conquistas/resultados como itens separados em "achievements"
+7. Retorne APENAS JSON válido, sem texto extra
+
+Estrutura obrigatória:${RESUME_JSON_SCHEMA}
 `;
 
 function safeJsonParse<T>(value: string, label: string): T {
@@ -194,18 +178,28 @@ export async function parseResume(
     12000
   );
 
-  const userPrompt = [
-    'Extraia o currículo abaixo para JSON estruturado.',
-    'Use apenas o que estiver explícito.',
-    'Não invente informações.',
-    'Extraia TODAS as experiências profissionais presentes, sem omitir nenhuma.',
-    'Para contact.linkedin: extraia a URL ou username do LinkedIn se presente.',
-    'Para contact.location: extraia cidade e estado (ex: "São Paulo, SP").',
-    '',
-    `curriculo=${JSON.stringify(cleanedText)}`,
-  ].join('\n');
+  const userPrompt = opts.fullExtraction
+    ? [
+        'Extraia TODOS os dados do currículo abaixo para JSON estruturado.',
+        'IMPORTANTE: inclua todas as experiências, formações e skills — não omita nenhuma.',
+        'Para contact.linkedin: extraia a URL ou username do LinkedIn se presente.',
+        'Para contact.location: extraia cidade e estado (ex: "São Paulo, SP").',
+        '',
+        `CURRICULO:\n${cleanedText}`,
+      ].join('\n')
+    : [
+        'Extraia o currículo abaixo para JSON estruturado.',
+        'Use apenas o que estiver explícito.',
+        'Não invente informações.',
+        'Para contact.linkedin: extraia a URL ou username do LinkedIn se presente.',
+        'Para contact.location: extraia cidade e estado (ex: "São Paulo, SP").',
+        '',
+        `curriculo=${JSON.stringify(cleanedText)}`,
+      ].join('\n');
 
-  const result = await callOpenAI(SYSTEM_PROMPT, userPrompt, {
+  const systemPrompt = opts.fullExtraction ? FULL_EXTRACTION_SYSTEM_PROMPT : SYSTEM_PROMPT;
+
+  const result = await callOpenAI(systemPrompt, userPrompt, {
     // Full extraction (import): use quality model with large token budget
     // Fast parse (analyze fallback): use fast model with smaller budget
     preset: opts.fullExtraction ? 'quality' : 'fast',
