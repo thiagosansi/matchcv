@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { OptimizedResume } from '@/types';
-import { Copy, Check, Star } from 'lucide-react';
+import { Copy, Check, Star, MapPin, Phone, Linkedin } from 'lucide-react';
 
 interface OptimizedResumeCardProps {
   resume: OptimizedResume;
@@ -110,6 +110,32 @@ export function OptimizedResumeCard({ resume }: OptimizedResumeCardProps) {
       </CardHeader>
 
       <CardContent className="space-y-5">
+        {resume.contact?.name && (
+          <div className="pb-3 border-b border-border">
+            <p className="text-base font-bold text-foreground">{resume.contact.name}</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+              {resume.contact.location && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <MapPin className="w-3 h-3" />
+                  {resume.contact.location}
+                </span>
+              )}
+              {resume.contact.phone && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Phone className="w-3 h-3" />
+                  {resume.contact.phone}
+                </span>
+              )}
+              {resume.contact.linkedin && (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Linkedin className="w-3 h-3" />
+                  {resume.contact.linkedin}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {hasSummary && (
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
