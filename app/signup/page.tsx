@@ -18,21 +18,15 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const handleSignup = async () => {
     setError('');
-    setSuccess('');
     setLoading(true);
 
     const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
+      options: { data: { full_name: fullName } },
     });
 
     if (error) {
@@ -52,7 +46,6 @@ export default function SignupPage() {
     }
 
     setLoading(false);
-    setSuccess('Conta criada com sucesso. Você já pode entrar.');
     router.push('/login');
   };
 
@@ -69,12 +62,6 @@ export default function SignupPage() {
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {success && (
-          <Alert>
-            <AlertDescription>{success}</AlertDescription>
           </Alert>
         )}
 
@@ -106,7 +93,8 @@ export default function SignupPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Crie uma senha"
+            placeholder="Mínimo 6 caracteres"
+            onKeyDown={(e) => e.key === 'Enter' && handleSignup()}
           />
         </div>
 

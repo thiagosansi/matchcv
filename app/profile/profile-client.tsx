@@ -774,55 +774,150 @@ export default function ProfilePage() {
                     </p>
                   )}
 
-                  {experiences.map((exp) => (
-                    <div
-                      key={exp.id}
-                      className="border rounded-lg p-3 bg-muted/30 flex items-start justify-between gap-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{exp.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {exp.company}
-                          {exp.location ? ` · ${exp.location}` : ''}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {formatDateDisplay(exp.start_date)}
-                          {' – '}
-                          {exp.is_current ? 'atual' : formatDateDisplay(exp.end_date)}
-                        </p>
-                      </div>
-                      <div className="flex gap-1 flex-shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => openEditExp(exp)}
-                          aria-label="Editar"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteExp(exp.id)}
-                          aria-label="Excluir"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                  {experiences.map((exp) =>
+                    expEditId === exp.id ? (
+                      /* ── Inline edit form ── */
+                      <div key={exp.id} className="border rounded-lg p-4 space-y-3 bg-background">
+                        <p className="text-sm font-medium">Editar experiência</p>
 
-                  {showExpForm && (
+                        {expError && <p className="text-xs text-destructive">{expError}</p>}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Empresa *</Label>
+                            <Input
+                              value={expForm.company}
+                              onChange={(e) => setExpForm((f) => ({ ...f, company: e.target.value }))}
+                              placeholder="Nome da empresa"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Cargo *</Label>
+                            <Input
+                              value={expForm.title}
+                              onChange={(e) => setExpForm((f) => ({ ...f, title: e.target.value }))}
+                              placeholder="Seu cargo"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Localização</Label>
+                            <Input
+                              value={expForm.location}
+                              onChange={(e) => setExpForm((f) => ({ ...f, location: e.target.value }))}
+                              placeholder="São Paulo, SP"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Data de início</Label>
+                            <Input
+                              type="date"
+                              value={expForm.start_date}
+                              onChange={(e) => setExpForm((f) => ({ ...f, start_date: e.target.value }))}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={expForm.is_current}
+                              onChange={(e) => setExpForm((f) => ({ ...f, is_current: e.target.checked }))}
+                              className="rounded"
+                            />
+                            Trabalho atual
+                          </label>
+                          {!expForm.is_current && (
+                            <div className="flex items-center gap-2 flex-1">
+                              <Label className="text-xs whitespace-nowrap">Data de saída</Label>
+                              <Input
+                                type="date"
+                                value={expForm.end_date}
+                                onChange={(e) => setExpForm((f) => ({ ...f, end_date: e.target.value }))}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-xs">Descrição e realizações</Label>
+                          <Textarea
+                            value={expForm.description}
+                            onChange={(e) => setExpForm((f) => ({ ...f, description: e.target.value }))}
+                            placeholder="Descreva suas responsabilidades e conquistas."
+                            rows={5}
+                            className="text-sm"
+                          />
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={handleSaveExp} disabled={expSaving}>
+                            {expSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Salvar'}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={cancelExpForm}>
+                            <X className="w-3.5 h-3.5 mr-1" />
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ── Experience card ── */
+                      <div
+                        key={exp.id}
+                        className="border rounded-lg p-3 bg-muted/30 flex items-start justify-between gap-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">{exp.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {exp.company}
+                            {exp.location ? ` · ${exp.location}` : ''}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {formatDateDisplay(exp.start_date)}
+                            {' – '}
+                            {exp.is_current ? 'atual' : formatDateDisplay(exp.end_date)}
+                          </p>
+                          {exp.description && (
+                            <p className="text-xs text-muted-foreground mt-1.5 whitespace-pre-line">
+                              {exp.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => openEditExp(exp)}
+                            aria-label="Editar"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteExp(exp.id)}
+                            aria-label="Excluir"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  )}
+
+                  {/* New experience form — only shown when not editing an existing one */}
+                  {showExpForm && !expEditId && (
                     <div className="border rounded-lg p-4 space-y-3 bg-background">
-                      <p className="text-sm font-medium">
-                        {expEditId ? 'Editar experiência' : 'Nova experiência'}
-                      </p>
+                      <p className="text-sm font-medium">Nova experiência</p>
 
-                      {expError && (
-                        <p className="text-xs text-destructive">{expError}</p>
-                      )}
+                      {expError && <p className="text-xs text-destructive">{expError}</p>}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1">
@@ -892,7 +987,7 @@ export default function ProfilePage() {
                           value={expForm.description}
                           onChange={(e) => setExpForm((f) => ({ ...f, description: e.target.value }))}
                           placeholder="Descreva suas responsabilidades e conquistas. Use verbos de ação e inclua métricas quando possível.&#10;- Liderou migração de sistema legado, reduzindo latência em 40%&#10;- Implementou CI/CD com GitHub Actions"
-                          rows={4}
+                          rows={5}
                           className="text-sm"
                         />
                       </div>
@@ -945,54 +1040,133 @@ export default function ProfilePage() {
                     </p>
                   )}
 
-                  {education.map((edu) => (
-                    <div
-                      key={edu.id}
-                      className="border rounded-lg p-3 bg-muted/30 flex items-start justify-between gap-3"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">
-                          {[edu.degree, edu.field].filter(Boolean).join(' em ') || edu.institution}
-                        </p>
-                        <p className="text-xs text-muted-foreground">{edu.institution}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {formatDateDisplay(edu.start_date)}
-                          {' – '}
-                          {edu.is_current ? 'em andamento' : formatDateDisplay(edu.end_date)}
-                        </p>
-                      </div>
-                      <div className="flex gap-1 flex-shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => openEditEdu(edu)}
-                          aria-label="Editar"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteEdu(edu.id)}
-                          aria-label="Excluir"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                  {education.map((edu) =>
+                    eduEditId === edu.id ? (
+                      /* ── Inline edit form ── */
+                      <div key={edu.id} className="border rounded-lg p-4 space-y-3 bg-background">
+                        <p className="text-sm font-medium">Editar formação</p>
 
-                  {showEduForm && (
+                        {eduError && <p className="text-xs text-destructive">{eduError}</p>}
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1 sm:col-span-2">
+                            <Label className="text-xs">Instituição *</Label>
+                            <Input
+                              value={eduForm.institution}
+                              onChange={(e) => setEduForm((f) => ({ ...f, institution: e.target.value }))}
+                              placeholder="Universidade / Faculdade / Instituição"
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Grau</Label>
+                            <Input
+                              value={eduForm.degree}
+                              onChange={(e) => setEduForm((f) => ({ ...f, degree: e.target.value }))}
+                              placeholder="Bacharel, Técnico, MBA..."
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Curso</Label>
+                            <Input
+                              value={eduForm.field}
+                              onChange={(e) => setEduForm((f) => ({ ...f, field: e.target.value }))}
+                              placeholder="Ciência da Computação..."
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Início</Label>
+                            <Input
+                              type="date"
+                              value={eduForm.start_date}
+                              onChange={(e) => setEduForm((f) => ({ ...f, start_date: e.target.value }))}
+                              className="h-8 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={eduForm.is_current}
+                              onChange={(e) => setEduForm((f) => ({ ...f, is_current: e.target.checked }))}
+                              className="rounded"
+                            />
+                            Em andamento
+                          </label>
+                          {!eduForm.is_current && (
+                            <div className="flex items-center gap-2 flex-1">
+                              <Label className="text-xs whitespace-nowrap">Conclusão</Label>
+                              <Input
+                                type="date"
+                                value={eduForm.end_date}
+                                onChange={(e) => setEduForm((f) => ({ ...f, end_date: e.target.value }))}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={handleSaveEdu} disabled={eduSaving}>
+                            {eduSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Salvar'}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={cancelEduForm}>
+                            <X className="w-3.5 h-3.5 mr-1" />
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* ── Education card ── */
+                      <div
+                        key={edu.id}
+                        className="border rounded-lg p-3 bg-muted/30 flex items-start justify-between gap-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium">
+                            {[edu.degree, edu.field].filter(Boolean).join(' em ') || edu.institution}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{edu.institution}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {formatDateDisplay(edu.start_date)}
+                            {' – '}
+                            {edu.is_current ? 'em andamento' : formatDateDisplay(edu.end_date)}
+                          </p>
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => openEditEdu(edu)}
+                            aria-label="Editar"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => handleDeleteEdu(edu.id)}
+                            aria-label="Excluir"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  )}
+
+                  {/* New education form */}
+                  {showEduForm && !eduEditId && (
                     <div className="border rounded-lg p-4 space-y-3 bg-background">
-                      <p className="text-sm font-medium">
-                        {eduEditId ? 'Editar formação' : 'Nova formação'}
-                      </p>
+                      <p className="text-sm font-medium">Nova formação</p>
 
-                      {eduError && (
-                        <p className="text-xs text-destructive">{eduError}</p>
-                      )}
+                      {eduError && <p className="text-xs text-destructive">{eduError}</p>}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="space-y-1 sm:col-span-2">

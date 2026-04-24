@@ -32,14 +32,16 @@ Estrutura:${RESUME_JSON_SCHEMA}
 const FULL_EXTRACTION_SYSTEM_PROMPT = `
 Você é um extrator de currículos de alta precisão. Converta o texto bruto de um currículo em JSON estruturado COMPLETO.
 
-REGRAS OBRIGATÓRIAS — siga todas:
-1. Extraia TODOS os empregos/cargos presentes — se há 10 empresas no texto, "experiences" deve ter 10 objetos
-2. Extraia TODAS as formações/cursos/MBAs presentes em "education"
-3. Extraia TODAS as habilidades técnicas em "skills" e ferramentas em "tools"
-4. Copie período exatamente como está no texto (ex: "Jan 2020 – Dez 2022", "2019 – atual")
-5. Inclua descrição de responsabilidades em "description"
-6. Liste conquistas/resultados como itens separados em "achievements"
-7. Retorne APENAS JSON válido, sem texto extra
+REGRAS OBRIGATÓRIAS — siga todas sem exceção:
+1. Extraia TODOS os empregos/cargos — se há 10 empresas, "experiences" DEVE ter 10 objetos. Nunca omita.
+2. Para cada experiência: preencha "description" com responsabilidades/atividades do cargo (copie do texto).
+3. Para cada experiência: preencha "achievements" com resultados/conquistas/métricas mencionadas.
+4. Se não houver achievements explícitos, "achievements" pode ser array vazio [].
+5. "description" NUNCA deve ficar vazio se o texto menciona atividades daquele cargo.
+6. Extraia TODAS as formações/cursos em "education".
+7. Extraia TODAS as habilidades em "skills" e ferramentas em "tools".
+8. Copie período exatamente como no texto (ex: "Jan 2020 – Dez 2022", "2019 – atual").
+9. Retorne APENAS JSON válido, sem texto extra.
 
 Estrutura obrigatória:${RESUME_JSON_SCHEMA}
 `;

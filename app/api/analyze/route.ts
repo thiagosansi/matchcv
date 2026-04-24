@@ -18,17 +18,10 @@ function parseMoneyToNumber(val: string): number {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { resumeText, jobText, jobUrl, userId } = body;
+    const { resumeText, jobText, jobUrl, userId, useProfile } = body;
 
     if (!userId || typeof userId !== 'string' || userId.length < 10) {
       return NextResponse.json({ error: 'Usuário inválido.' }, { status: 400 });
-    }
-
-    if (!resumeText || typeof resumeText !== 'string' || resumeText.trim().length < 100) {
-      return NextResponse.json(
-        { error: 'O currículo precisa ter pelo menos 100 caracteres válidos.' },
-        { status: 400 }
-      );
     }
 
     if (!jobText || typeof jobText !== 'string' || jobText.trim().length < 50) {
@@ -38,11 +31,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (resumeText.length > 15000 || jobText.length > 10000) {
+    if (jobText.length > 10000) {
       return NextResponse.json(
-        { error: 'O texto enviado excede o limite permitido para análise.' },
+        { error: 'O texto da vaga excede o limite permitido.' },
         { status: 400 }
       );
+    }
+
+    // When useProfile is true, resume text is optional (profile data will be used)
+    if (!useProfile) {
+      if (!resumeText || typeof resumeText !== 'string' || resumeText.trim().length < 100) {
+        return NextResponse.json(
+          { error: 'O currículo precisa ter pelo menos 100 caracteres válidos.' },
+          { status: 400 }
+        );
+      }
+      if (resumeText.length > 15000) {
+        return NextResponse.json(
+          { error: 'O texto do currículo excede o limite permitido.' },
+          { status: 400 }
+        );
+      }
     }
 
     // Detect platform from URL so parseJob can set isGupy and platform correctly
@@ -54,15 +63,24 @@ export async function POST(request: NextRequest) {
       fullProfile !== null &&
       (fullProfile.work_experiences.length > 0 || fullProfile.skills.length > 0);
 
+    if (useProfile && !hasStructuredProfile) {
+      return NextResponse.json(
+        { error: 'Nenhum perfil estruturado encontrado. Preencha seu perfil antes de usar esta opção.' },
+        { status: 400 }
+      );
+    }
+
+    const effectiveResumeText = (resumeText ?? '').trim();
+
     const [resumeStructured, jobStructured] = await Promise.all([
       hasStructuredProfile
         ? Promise.resolve(fullProfileToResumeStructured(fullProfile!))
-        : parseResume(resumeText.trim()),
+        : parseResume(effectiveResumeText),
       parseJob(jobText.trim(), platform),
     ]);
 
     const [analysis, salary] = await Promise.all([
-      analyzeCompatibility(resumeStructured, jobStructured, resumeText.trim()),
+      analyzeCompatibility(resumeStructured, jobStructured, effectiveResumeText),
       estimateSalary(jobStructured),
     ]);
 
@@ -70,7 +88,7 @@ export async function POST(request: NextRequest) {
     const atsScore = calculateATSScore(resumeStructured, jobStructured);
 
     const [optimized, gupySuggestions] = await Promise.all([
-      optimizeResume(resumeStructured, jobStructured, analysis, resumeText.trim()),
+      optimizeResume(resumeStructured, jobStructured, analysis, effectiveResumeText),
       jobStructured.isGupy
         ? generateGupyTexts(resumeStructured, jobStructured)
         : Promise.resolve(null),
@@ -82,9 +100,9 @@ export async function POST(request: NextRequest) {
       .from('resumes')
       .insert({
         user_id: userId,
-        file_name: 'uploaded_resume.txt',
+        file_name: useProfile ? 'profile_resume' : 'uploaded_resume.txt',
         file_path: '',
-        raw_text: resumeText.trim(),
+        raw_text: effectiveResumeText,
         structured_json: resumeStructured,
       })
       .select('id')

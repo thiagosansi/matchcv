@@ -38,11 +38,14 @@ function normalizeOptimizedResume(
 ): OptimizedResume {
   if (value && typeof value === 'object') {
     return {
+      contact: value.contact ?? undefined,
       summary: typeof value.summary === 'string' ? value.summary : '',
       experiences: Array.isArray(value.experiences) ? value.experiences : [],
       skills: Array.isArray(value.skills) ? value.skills : [],
       education: Array.isArray(value.education) ? value.education : [],
       highlights: Array.isArray(value.highlights) ? value.highlights : [],
+      languages: Array.isArray(value.languages) ? value.languages : undefined,
+      certifications: Array.isArray(value.certifications) ? value.certifications : undefined,
       fullText:
         typeof value.fullText === 'string' && value.fullText.trim()
           ? value.fullText

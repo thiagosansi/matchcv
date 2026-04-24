@@ -23,11 +23,12 @@ import {
   ChevronDown,
   ChevronUp,
   Star,
+  User,
 } from 'lucide-react';
 import { detectPlatform } from '@/lib/platforms/detect';
 import { PLATFORM_DISPLAY_NAMES } from '@/lib/platforms/errors';
 
-type ResumeMode = 'pdf' | 'text';
+type ResumeMode = 'profile' | 'pdf' | 'text';
 type PdfStatus = 'idle' | 'uploading' | 'success' | 'error';
 
 interface SavedResume {
@@ -42,7 +43,7 @@ export default function AnalyzePage() {
   const router = useRouter();
   const { user, loading: authLoading, profile } = useAuth();
 
-  const [resumeMode, setResumeMode] = useState<ResumeMode>('pdf');
+  const [resumeMode, setResumeMode] = useState<ResumeMode>('profile');
   const [resumeText, setResumeText] = useState('');
   const [pdfStatus, setPdfStatus] = useState<PdfStatus>('idle');
   const [pdfFileName, setPdfFileName] = useState('');
@@ -52,6 +53,8 @@ export default function AnalyzePage() {
   const [pdfError, setPdfError] = useState('');
   const [savedPrimaryResume, setSavedPrimaryResume] = useState<SavedResume | null>(null);
   const [loadingPrimaryResume, setLoadingPrimaryResume] = useState(true);
+  const [profileExpCount, setProfileExpCount] = useState(0);
+  const [profileSkillCount, setProfileSkillCount] = useState(0);
 
   const [jobText, setJobText] = useState('');
   const [jobUrl, setJobUrl] = useState('');
@@ -92,12 +95,25 @@ export default function AnalyzePage() {
 
     setLoadingPrimaryResume(true);
 
-    fetch(`/api/resumes?userId=${encodeURIComponent(user.id)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        const primary = data.primaryResume ?? null;
-        setSavedPrimaryResume(primary);
+    // Load profile structure count and saved primary resume in parallel
+    Promise.all([
+      fetch('/api/profile/experiences').then((r) => r.json()).catch(() => ({ experiences: [] })),
+      fetch('/api/profile/skills').then((r) => r.json()).catch(() => ({ skills: [] })),
+      fetch(`/api/resumes?userId=${encodeURIComponent(user.id)}`).then((r) => r.json()).catch(() => ({})),
+    ]).then(([expData, skillData, resumeData]) => {
+      const expCount = expData.experiences?.length ?? 0;
+      const skillCount = skillData.skills?.length ?? 0;
+      setProfileExpCount(expCount);
+      setProfileSkillCount(skillCount);
 
+      // Auto-select profile mode if user has structured data
+      if (expCount > 0 || skillCount > 0) {
+        setResumeMode('profile');
+      } else {
+        // Fall back to PDF mode and load primary resume
+        setResumeMode('pdf');
+        const primary = resumeData.primaryResume ?? null;
+        setSavedPrimaryResume(primary);
         if (primary?.raw_text) {
           setResumeText(primary.raw_text);
           setPdfFileName(primary.file_name || 'Currículo principal');
@@ -105,9 +121,8 @@ export default function AnalyzePage() {
           setPdfCharCount(primary.raw_text.length);
           setPdfStatus('success');
         }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingPrimaryResume(false));
+      }
+    }).finally(() => setLoadingPrimaryResume(false));
   }, [user]);
 
   const handlePdfUpload = async (file: File) => {
@@ -220,9 +235,10 @@ export default function AnalyzePage() {
       return;
     }
 
+    const usingProfile = resumeMode === 'profile';
     const effectiveResume = resumeText.trim();
 
-    if (!effectiveResume || effectiveResume.length < 80) {
+    if (!usingProfile && (!effectiveResume || effectiveResume.length < 80)) {
       setError(
         resumeMode === 'pdf'
           ? 'Faça o upload do seu currículo em PDF para continuar.'
@@ -250,10 +266,11 @@ export default function AnalyzePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          resumeText: effectiveResume,
+          resumeText: usingProfile ? '' : effectiveResume,
           jobText: jobText.trim(),
           jobUrl,
           userId: user.id,
+          useProfile: usingProfile,
         }),
       });
 
@@ -298,8 +315,12 @@ export default function AnalyzePage() {
 
   if (!user) return null;
 
+  const hasStructuredProfile = profileExpCount > 0 || profileSkillCount > 0;
+
   const resumeReady =
-    resumeMode === 'pdf'
+    resumeMode === 'profile'
+      ? hasStructuredProfile
+      : resumeMode === 'pdf'
       ? pdfStatus === 'success'
       : resumeText.trim().length >= 80;
 
@@ -348,16 +369,80 @@ export default function AnalyzePage() {
             </div>
 
             <Tabs value={resumeMode} onValueChange={(v) => setResumeMode(v as ResumeMode)}>
-              <TabsList className="w-full grid grid-cols-2 h-9">
+              <TabsList className="w-full grid grid-cols-3 h-9">
+                <TabsTrigger value="profile" className="text-sm gap-1.5">
+                  <User className="w-3.5 h-3.5" />
+                  Meu perfil
+                </TabsTrigger>
                 <TabsTrigger value="pdf" className="text-sm gap-1.5">
                   <Upload className="w-3.5 h-3.5" />
-                  Upload PDF
+                  PDF
                 </TabsTrigger>
                 <TabsTrigger value="text" className="text-sm gap-1.5">
                   <FileText className="w-3.5 h-3.5" />
-                  Colar texto
+                  Texto
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="profile" className="mt-3">
+                {loadingPrimaryResume ? (
+                  <div className="border rounded-xl p-6 text-center text-sm text-muted-foreground">
+                    Verificando perfil...
+                  </div>
+                ) : hasStructuredProfile ? (
+                  <div className="border border-primary/30 bg-primary/5 rounded-xl p-4 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <User className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Perfil estruturado pronto</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Seus dados serão usados diretamente. Nenhum upload necessário.
+                        </p>
+                      </div>
+                      <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5 ml-auto" />
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {profileExpCount > 0 && (
+                        <span className="text-xs bg-background border rounded-full px-2.5 py-1 text-muted-foreground">
+                          {profileExpCount} experiência{profileExpCount !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {profileSkillCount > 0 && (
+                        <span className="text-xs bg-background border rounded-full px-2.5 py-1 text-muted-foreground">
+                          {profileSkillCount} skill{profileSkillCount !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Quer usar um currículo diferente?{' '}
+                      <button
+                        type="button"
+                        onClick={() => setResumeMode('pdf')}
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
+                        Enviar PDF
+                      </button>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="border border-dashed rounded-xl p-6 text-center space-y-3">
+                    <User className="w-8 h-8 text-muted-foreground mx-auto" />
+                    <p className="text-sm font-medium">Perfil ainda não preenchido</p>
+                    <p className="text-xs text-muted-foreground">
+                      Preencha seu perfil com experiências e skills para usar esta opção.
+                    </p>
+                    <a
+                      href="/profile"
+                      className="inline-flex items-center gap-1.5 text-xs text-primary font-medium hover:underline"
+                    >
+                      Ir para o perfil
+                      <ArrowRight className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+              </TabsContent>
 
               <TabsContent value="pdf" className="mt-3 space-y-3">
                 <input
@@ -624,7 +709,9 @@ export default function AnalyzePage() {
           {!isReady && !loading && (
             <p className="text-xs text-muted-foreground">
               {!resumeReady
-                ? 'Adicione ou mantenha um currículo válido'
+                ? resumeMode === 'profile'
+                  ? 'Preencha seu perfil com experiências antes de continuar'
+                  : 'Adicione ou mantenha um currículo válido'
                 : 'Cole a descrição da vaga (mín. 50 caracteres)'}
             </p>
           )}

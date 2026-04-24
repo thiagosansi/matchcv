@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,42 +11,40 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = getSupabaseBrowserClient();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
+
+  useEffect(() => {
+    if (searchParams.get('reset') === 'success') {
+      setInfo('Senha redefinida com sucesso. Faça login com a nova senha.');
+    }
+  }, [searchParams]);
 
   const handleLogin = async () => {
     setError('');
     setLoading(true);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      clearTimeout(timeoutId);
       setLoading(false);
 
       if (error) {
-        setError(error.message);
+        setError('Email ou senha incorretos.');
         return;
       }
 
-      router.push('/dashboard');
-    } catch (err) {
+      const next = searchParams.get('next') ?? '/dashboard';
+      router.push(next);
+    } catch {
       setLoading(false);
-      if (err instanceof Error && err.name === 'AbortError') {
-        setError('A requisição demorou muito. Verifique sua conexão e tente novamente.');
-      } else {
-        setError('Erro ao conectar. Tente novamente em instantes.');
-      }
+      setError('Erro ao conectar. Tente novamente em instantes.');
     }
   };
 
@@ -59,6 +57,12 @@ export default function LoginPage() {
             Acesse sua conta para salvar currículo, histórico e análises.
           </p>
         </div>
+
+        {info && (
+          <Alert>
+            <AlertDescription>{info}</AlertDescription>
+          </Alert>
+        )}
 
         {error && (
           <Alert variant="destructive">
@@ -78,13 +82,19 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Senha</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Senha</Label>
+            <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-primary">
+              Esqueceu a senha?
+            </Link>
+          </div>
           <Input
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Sua senha"
+            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
           />
         </div>
 
