@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createServerClient } from '@/lib/supabase';
+import { createAuthServerClient } from '@/lib/server-auth';
 import { getAuthUser } from '@/lib/server-auth';
 
 const updateSchema = z.object({
@@ -35,7 +35,7 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  const db = createServerClient();
+  const db = createAuthServerClient();
 
   const updates: Record<string, unknown> = {
     ...parsed.data,
@@ -72,7 +72,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
   }
 
-  const db = createServerClient();
+  const db = createAuthServerClient();
 
   const { error } = await db
     .from('work_experiences')

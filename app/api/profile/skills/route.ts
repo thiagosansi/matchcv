@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { createServerClient } from '@/lib/supabase';
+import { createAuthServerClient } from '@/lib/server-auth';
 import { getAuthUser } from '@/lib/server-auth';
 
 const createSchema = z.object({
@@ -20,7 +20,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
   }
 
-  const db = createServerClient();
+  const db = createAuthServerClient();
   const { data, error } = await db
     .from('profile_skills')
     .select('*')
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  const db = createServerClient();
+  const db = createAuthServerClient();
 
   let nextOrder = parsed.data.display_order;
   if (nextOrder === undefined) {
@@ -107,7 +107,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
   }
 
-  const db = createServerClient();
+  const db = createAuthServerClient();
   const { error } = await db
     .from('profile_skills')
     .update({ deleted_at: new Date().toISOString() })
