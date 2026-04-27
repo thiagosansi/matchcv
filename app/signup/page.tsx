@@ -9,6 +9,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+function mapAuthError(message: string): string {
+  if (message.includes('email rate limit exceeded') || message.includes('rate limit')) {
+    return 'Limite de envio de emails atingido. Aguarde alguns minutos e tente novamente.';
+  }
+  if (message.includes('User already registered') || message.includes('already been registered')) {
+    return 'Este email já está cadastrado. Tente fazer login.';
+  }
+  if (message.includes('Password should be at least')) {
+    return 'A senha deve ter no mínimo 6 caracteres.';
+  }
+  if (message.includes('Unable to validate email') || message.includes('invalid format')) {
+    return 'Formato de email inválido.';
+  }
+  if (message.includes('Email not confirmed')) {
+    return 'Email ainda não confirmado. Verifique sua caixa de entrada.';
+  }
+  return 'Erro ao criar conta. Tente novamente.';
+}
+
 export default function SignupPage() {
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
@@ -31,7 +50,7 @@ export default function SignupPage() {
 
     if (error) {
       setLoading(false);
-      setError(error.message);
+      setError(mapAuthError(error.message));
       return;
     }
 
@@ -46,7 +65,14 @@ export default function SignupPage() {
     }
 
     setLoading(false);
-    router.push('/login');
+
+    // If email confirmation is disabled, signUp returns an active session immediately.
+    // Otherwise, redirect to login so the user can sign in after confirming their email.
+    if (signUpData?.session) {
+      router.push('/');
+    } else {
+      router.push('/login');
+    }
   };
 
   return (
