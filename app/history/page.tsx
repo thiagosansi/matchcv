@@ -102,20 +102,12 @@ export default function HistoryPage() {
     <>
       <AppHeader />
       <main className="pt-[60px] max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <History className="w-5 h-5 text-primary" />
-              <h1 className="text-2xl font-bold">Histórico</h1>
-            </div>
-            <p className="text-sm text-muted-foreground">Suas análises salvas na conta</p>
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-1">
+            <History className="w-5 h-5 text-primary" />
+            <h1 className="text-2xl font-bold">Histórico</h1>
           </div>
-          <Link href="/analyze">
-            <Button className="gap-1.5 h-9">
-              <Plus className="w-4 h-4" />
-              Nova análise
-            </Button>
-          </Link>
+          <p className="text-sm text-muted-foreground">Suas análises salvas na conta</p>
         </div>
 
         {error && (

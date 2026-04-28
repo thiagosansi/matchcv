@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FileText, History, Plus } from 'lucide-react';
+import { FileText, History, LayoutDashboard, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function AppHeader() {
   const pathname = usePathname();
 
   const navLinks = [
+    { href: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { href: '/history', label: 'Histórico', icon: <History className="w-4 h-4" /> },
-    { href: '/analyze', label: 'Nova análise', icon: <Plus className="w-4 h-4" /> },
   ];
 
   return (
